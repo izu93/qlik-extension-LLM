@@ -1,0 +1,32 @@
+// object-properties.js - Streamlined configuration
+export default {
+    // Standard Qlik object properties
+    showTitles: true,
+    title: "",
+    subtitle: "",
+    footnote: "",
+  
+    // Hypercube definition for data handling
+    qHyperCubeDef: {
+      qDimensions: [], // Array to store dimension definitions
+      qMeasures: [], // Array to store measure definitions
+      // Initial data fetch configuration
+      qInitialDataFetch: [
+        {
+          qWidth: 40, // Number of columns to fetch
+          qHeight: 100, // Number of rows to fetch
+        },
+      ],
+    },
+  
+    // Custom properties for streamlined LLM configuration
+    props: {
+      connectionType: "claude", // Always Claude for this streamlined version
+      connectionName:
+        "Churn Analytics:Anthropic_Claude35Sonnet_ChurnML", // Claude SSE connection name
+      temperature: 0.7, // Controls randomness in responses (0-1)
+      topK: 250, // Limits vocabulary to top K tokens
+      topP: 1, // Nucleus sampling parameter
+      maxTokens: 1000, // Maximum response length
+    },
+  };

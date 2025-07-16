@@ -1,0 +1,49 @@
+{
+  "name": "qlikExtensionLLM",
+  "version": "0.1.0",
+  "description": "Dynamic LLM Extension for Qlik Cloud",
+  "license": "MIT",
+  "author": {
+    "name": "Your Name",
+    "email": "your.email@domain.com"
+  },
+  "keywords": [
+    "qlik",
+    "nebula",
+    "stardust",
+    "llm",
+    "ai"
+  ],
+  "files": [
+    "dist",
+    "assets/preview.png"
+  ],
+  "engines": {
+    "node": ">=18.10.0"
+  },
+  "main": "dist/qlikExtensionLLM.js",
+  "module": "dist/qlikExtensionLLM.esm.js",
+  "scripts": {
+    "build": "nebula build",
+    "lint": "eslint src",
+    "start": "nebula serve",
+    "sense": "nebula sense --meta src/meta.json",
+    "test:e2e": "playwright test",
+    "test:e2e:report": "playwright show-report test/integration/test-report"
+  },
+  "devDependencies": {
+    "@nebula.js/cli": "5.15.0",
+    "@nebula.js/cli-build": "5.15.0",
+    "@nebula.js/cli-serve": "5.15.0",
+    "@nebula.js/cli-sense": "5.15.0",
+    "@playwright/test": "^1.28.1",
+    "@qlik/sdk": "^0.12.0",
+    "eslint": "7.27.0",
+    "eslint-config-airbnb-base": "14.2.1",
+    "eslint-plugin-import": "2.23.4",
+    "eslint-plugin-mocha": "9.0.0"
+  },
+  "peerDependencies": {
+    "@nebula.js/stardust": ">=5.0.0"
+  }
+}
