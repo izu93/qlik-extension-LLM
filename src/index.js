@@ -28,6 +28,7 @@ export default function supernova() {
         const dimensionCount = layout?.qHyperCube?.qDimensionInfo?.length || 0;
         const measureCount = layout?.qHyperCube?.qMeasureInfo?.length || 0;
         const hasDimensionsOrMeasures = dimensionCount > 0 || measureCount > 0;
+        const isSelectionValidationConfigured = !!(layout?.props?.enableSelectionValidation && layout?.props?.customValidationExpression?.trim());
 
         // Clear and setup the exact UI design
         element.innerHTML = `
@@ -149,6 +150,51 @@ export default function supernova() {
                   ">${hasDimensionsOrMeasures ? 
                     `${dimensionCount} dimension${dimensionCount !== 1 ? 's' : ''} and ${measureCount} measure${measureCount !== 1 ? 's' : ''} configured` : 
                     'Add data fields in the Data panel'
+                  }</p>
+                </div>
+              </div>
+
+              <!-- Step 3: Setup Selection Validation -->
+              <div style="
+                background: ${isSelectionValidationConfigured ? '#f6ffed' : '#fff7e6'};
+                border: 1px solid ${isSelectionValidationConfigured ? '#b7eb8f' : '#ffd591'};
+                border-radius: 6px;
+                padding: 10px 10px;
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                transition: all 0.3s ease;
+              ">
+                <div style="
+                  width: 32px;
+                  height: 32px;
+                  border-radius: 50%;
+                  background: ${isSelectionValidationConfigured ? '#52c41a' : '#fa8c16'};
+                  color: white;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-weight: 600;
+                  font-size: 16px;
+                  flex-shrink: 0;
+                ">
+                  ${isSelectionValidationConfigured ? '✓' : '3'}
+                </div>
+                <div style="flex: 1;">
+                  <h3 style="
+                    margin: 0 0 4px 0;
+                    color: ${isSelectionValidationConfigured ? '#52c41a' : '#fa8c16'};
+                    font-size: 16px;
+                    font-weight: 600;
+                  ">${isSelectionValidationConfigured ? 'Selection Validation Configured ✓' : 'Setup Selection Validation'}</h3>
+                  <p style="
+                    margin: 0;
+                    color: #8c8c8c;
+                    font-size: 14px;
+                    font-weight: 400;
+                  ">${isSelectionValidationConfigured ? 
+                    'Custom validation expression configured' : 
+                    'Enable validation in Selection Validation panel'
                   }</p>
                 </div>
               </div>

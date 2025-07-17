@@ -151,6 +151,57 @@
           },
         },
   
+        // Selection Validation section
+        selectionValidation: {
+          type: "items",
+          label: "Selection Validation",
+          items: {
+            enableSelectionValidation: {
+              type: "boolean",
+              label: "Enable Custom Selection Validation",
+              ref: "props.enableSelectionValidation",
+              defaultValue: false,
+            },
+            customValidationExpression: {
+              type: "string",
+              component: "expression",
+              label: "Custom Validation Expression",
+              ref: "props.customValidationExpression",
+              defaultValue: "",
+              show: function (data) {
+                return data.props?.enableSelectionValidation || false;
+              },
+            },
+            customValidationErrorMessage: {
+              type: "string",
+              component: "textarea",
+              label: "Custom Validation Error Message",
+              ref: "props.customValidationErrorMessage",
+              defaultValue: "Please make the required selections to proceed with AI analysis",
+              show: function (data) {
+                return data.props?.enableSelectionValidation || false;
+              },
+            },
+            expressionStatus: {
+              component: "text",
+              label: "Expression Status",
+              show: function (data) {
+                const hasExpression = data.props?.customValidationExpression?.trim();
+                const isEnabled = data.props?.enableSelectionValidation || false;
+                return isEnabled && hasExpression;
+              },
+            },
+            expressionExamples: {
+              component: "text",
+              label: "Expression Examples:\n• Single selection: GetSelectedCount(automl_feature)=1\n• Multiple fields: GetSelectedCount(Customer)=1 and GetSelectedCount(Invoice)=1",
+              style: "font-style: italic; color: #666; font-size: 12px; white-space: pre-line;",
+              show: function (data) {
+                return data.props?.enableSelectionValidation || false;
+              },
+            },
+          },
+        },
+
         // Standard appearance settings
         appearance: {
           uses: "settings",
