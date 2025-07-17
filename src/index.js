@@ -259,42 +259,47 @@ export default function supernova() {
                   
                   <!-- Chat Input -->
                   <div style="
+                    position: relative;
                     display: flex;
-                    gap: 8px;
-                    align-items: flex-end;
                   ">
                     <textarea 
                       id="chat-input"
                       placeholder="Ask for prompt suggestions..."
                       style="
-                        flex: 1;
+                        width: 100%;
                         height: 60px;
-                        padding: 8px 12px;
+                        padding: 8px 45px 8px 12px;
                         border: 1px solid #d9d9d9;
-                        border-radius: 4px;
+                        border-radius: 8px;
                         font-size: 12px;
                         font-family: 'Source Sans Pro', sans-serif;
                         resize: none;
                         box-sizing: border-box;
+                        outline: none;
                       "
                     ></textarea>
                     <button 
                       id="send-chat"
                       style="
-                        width: 36px;
-                        height: 36px;
-                        border: 1px solid #1890ff;
-                        background: #1890ff;
-                        color: white;
-                        border-radius: 4px;
+                        position: absolute;
+                        right: 8px;
+                        bottom: 8px;
+                        width: 28px;
+                        height: 28px;
+                        border: 1px solid #d9d9d9;
+                        background: white;
+                        color: #666;
+                        border-radius: 6px;
                         cursor: pointer;
                         display: flex;
                         align-items: center;
                         justify-content: center;
-                        font-size: 16px;
-                        margin-bottom: 2px;
+                        font-size: 14px;
+                        transition: background-color 0.2s ease;
                       "
-                      title="Send message">📤</button>
+                      onmouseover="this.style.background='#f5f5f5'"
+                      onmouseout="this.style.background='white'"
+                      title="Send message">↗️</button>
                   </div>
                   
                   <!-- Quick Actions -->
@@ -322,7 +327,7 @@ export default function supernova() {
                         cursor: pointer;
                         font-size: 11px;
                         text-align: left;
-                      ">🤖 Suggest system prompt</button>
+                      ">⚙️ Suggest system prompt</button>
                     <button 
                       class="quick-action"
                       onclick="sendQuickMessage('Help me create an effective user prompt with field references')"
@@ -848,8 +853,8 @@ export default function supernova() {
               
               <!-- Step 1: Configure Claude Connection -->
               <div style="
-                background: ${isConnectionConfigured ? '#f6ffed' : '#fff7e6'};
-                border: 1px solid ${isConnectionConfigured ? '#b7eb8f' : '#ffd591'};
+                background: ${isConnectionConfigured ? '#f6ffed' : '#f5f5f5'};
+                border: 1px solid ${isConnectionConfigured ? '#b7eb8f' : '#d9d9d9'};
                 border-radius: 6px;
                 padding: 10px 10px;
                 display: flex;
@@ -861,7 +866,7 @@ export default function supernova() {
                   width: 32px;
                   height: 32px;
                   border-radius: 50%;
-                  background: ${isConnectionConfigured ? '#52c41a' : '#fa8c16'};
+                  background: ${isConnectionConfigured ? '#52c41a' : '#595959'};
                   color: white;
                   display: flex;
                   align-items: center;
@@ -875,7 +880,7 @@ export default function supernova() {
                 <div style="flex: 1;">
                   <h3 style="
                     margin: 0 0 4px 0;
-                    color: ${isConnectionConfigured ? '#52c41a' : '#fa8c16'};
+                    color: ${isConnectionConfigured ? '#52c41a' : '#595959'};
                     font-size: 16px;
                     font-weight: 600;
                   ">${isConnectionConfigured ? 'Connection Configured ✓' : 'Configure Claude Connection'}</h3>
@@ -890,8 +895,8 @@ export default function supernova() {
 
               <!-- Step 2: Add Dimensions & Measures -->
               <div style="
-                background: ${hasDimensionsOrMeasures ? '#f6ffed' : '#fff7e6'};
-                border: 1px solid ${hasDimensionsOrMeasures ? '#b7eb8f' : '#ffd591'};
+                background: ${hasDimensionsOrMeasures ? '#f6ffed' : '#f5f5f5'};
+                border: 1px solid ${hasDimensionsOrMeasures ? '#b7eb8f' : '#d9d9d9'};
                 border-radius: 6px;
                 padding: 10px 10px;
                 display: flex;
@@ -903,7 +908,7 @@ export default function supernova() {
                   width: 32px;
                   height: 32px;
                   border-radius: 50%;
-                  background: ${hasDimensionsOrMeasures ? '#52c41a' : '#fa8c16'};
+                  background: ${hasDimensionsOrMeasures ? '#52c41a' : '#595959'};
                   color: white;
                   display: flex;
                   align-items: center;
@@ -917,7 +922,7 @@ export default function supernova() {
                 <div style="flex: 1;">
                   <h3 style="
                     margin: 0 0 4px 0;
-                    color: ${hasDimensionsOrMeasures ? '#52c41a' : '#fa8c16'};
+                    color: ${hasDimensionsOrMeasures ? '#52c41a' : '#595959'};
                     font-size: 16px;
                     font-weight: 600;
                   ">${hasDimensionsOrMeasures ? 'Data Fields Added ✓' : 'Add Dimensions & Measures'}</h3>
@@ -935,8 +940,8 @@ export default function supernova() {
 
               <!-- Step 3: Setup Selection Validation -->
               <div style="
-                background: ${isSelectionValidationConfigured ? '#f6ffed' : '#fff7e6'};
-                border: 1px solid ${isSelectionValidationConfigured ? '#b7eb8f' : '#ffd591'};
+                background: ${isSelectionValidationConfigured ? '#f6ffed' : '#f5f5f5'};
+                border: 1px solid ${isSelectionValidationConfigured ? '#b7eb8f' : '#d9d9d9'};
                 border-radius: 6px;
                 padding: 10px 10px;
                 display: flex;
@@ -948,7 +953,7 @@ export default function supernova() {
                   width: 32px;
                   height: 32px;
                   border-radius: 50%;
-                  background: ${isSelectionValidationConfigured ? '#52c41a' : '#fa8c16'};
+                  background: ${isSelectionValidationConfigured ? '#52c41a' : '#595959'};
                   color: white;
                   display: flex;
                   align-items: center;
@@ -962,7 +967,7 @@ export default function supernova() {
                 <div style="flex: 1;">
                   <h3 style="
                     margin: 0 0 4px 0;
-                    color: ${isSelectionValidationConfigured ? '#52c41a' : '#fa8c16'};
+                    color: ${isSelectionValidationConfigured ? '#52c41a' : '#595959'};
                     font-size: 16px;
                     font-weight: 600;
                   ">${isSelectionValidationConfigured ? 'Selection Validation Configured ✓' : 'Setup Selection Validation'}</h3>
@@ -980,8 +985,8 @@ export default function supernova() {
 
               <!-- Step 4: Add AI Prompts -->
               <div style="
-                background: ${arePromptsConfigured ? '#f6ffed' : '#fff7e6'};
-                border: 1px solid ${arePromptsConfigured ? '#b7eb8f' : '#ffd591'};
+                background: ${arePromptsConfigured ? '#f6ffed' : '#f5f5f5'};
+                border: 1px solid ${arePromptsConfigured ? '#b7eb8f' : '#d9d9d9'};
                 border-radius: 6px;
                 padding: 10px 10px;
                 display: flex;
@@ -993,7 +998,7 @@ export default function supernova() {
                   width: 32px;
                   height: 32px;
                   border-radius: 50%;
-                  background: ${arePromptsConfigured ? '#52c41a' : '#fa8c16'};
+                  background: ${arePromptsConfigured ? '#52c41a' : '#595959'};
                   color: white;
                   display: flex;
                   align-items: center;
@@ -1007,7 +1012,7 @@ export default function supernova() {
                 <div style="flex: 1;">
                   <h3 style="
                     margin: 0 0 4px 0;
-                    color: ${arePromptsConfigured ? '#52c41a' : '#fa8c16'};
+                    color: ${arePromptsConfigured ? '#52c41a' : '#595959'};
                     font-size: 16px;
                     font-weight: 600;
                   ">${arePromptsConfigured ? 'Prompts Configured ✓' : 'Add Prompts'}</h3>
