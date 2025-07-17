@@ -94,96 +94,9 @@ export default function supernova() {
                 display: flex;
                 overflow: hidden;
               ">
-                <!-- Left Column: Available Data Fields -->
+                <!-- Left Column: AI Prompts -->
                 <div style="
-                  width: 20%;
-                  border-right: 1px solid #f0f0f0;
-                  padding: 20px;
-                  overflow-y: auto;
-                ">
-                  <h3 style="
-                    margin: 0 0 16px 0;
-                    color: #333;
-                    font-size: 14px;
-                    font-weight: 600;
-                    text-transform: uppercase;
-                    letter-spacing: 0.5px;
-                  ">Available Data Fields</h3>
-                  
-                  ${dimensions.length > 0 ? `
-                    <div style="margin-bottom: 20px;">
-                      <h4 style="
-                        margin: 0 0 8px 0;
-                        color: #666;
-                        font-size: 12px;
-                        font-weight: 500;
-                      ">Dimensions (${dimensions.length})</h4>
-                      ${dimensions.map(dim => `
-                        <div style="
-                          padding: 8px 12px;
-                          margin: 4px 0;
-                          background: #f8f9fa;
-                          border: 1px solid #e9ecef;
-                          border-radius: 4px;
-                          cursor: pointer;
-                          font-size: 13px;
-                          color: #495057;
-                          transition: all 0.2s ease;
-                        " 
-                        onmouseover="this.style.background='#e9ecef'"
-                        onmouseout="this.style.background='#f8f9fa'"
-                        onclick="addToMapping('${dim.qFallbackTitle}', 'dimension')">
-                          📊 ${dim.qFallbackTitle}
-                        </div>
-                      `).join('')}
-                    </div>
-                  ` : ''}
-                  
-                  ${measures.length > 0 ? `
-                    <div>
-                      <h4 style="
-                        margin: 0 0 8px 0;
-                        color: #666;
-                        font-size: 12px;
-                        font-weight: 500;
-                      ">Measures (${measures.length})</h4>
-                      ${measures.map(measure => `
-                        <div style="
-                          padding: 8px 12px;
-                          margin: 4px 0;
-                          background: #f8f9fa;
-                          border: 1px solid #e9ecef;
-                          border-radius: 4px;
-                          cursor: pointer;
-                          font-size: 13px;
-                          color: #495057;
-                          transition: all 0.2s ease;
-                        "
-                        onmouseover="this.style.background='#e9ecef'"
-                        onmouseout="this.style.background='#f8f9fa'"
-                        onclick="addToMapping('${measure.qFallbackTitle}', 'measure')">
-                          📈 ${measure.qFallbackTitle}
-                        </div>
-                      `).join('')}
-                    </div>
-                  ` : ''}
-                  
-                  ${dimensions.length === 0 && measures.length === 0 ? `
-                    <div style="
-                      text-align: center;
-                      color: #8c8c8c;
-                      font-style: italic;
-                      margin-top: 40px;
-                    ">
-                      No data fields available.<br/>
-                      Add dimensions and measures first.
-                    </div>
-                  ` : ''}
-                </div>
-
-                <!-- Middle Column: Prompts -->
-                <div style="
-                  width: 50%;
+                  width: 70%;
                   border-right: 1px solid #f0f0f0;
                   padding: 20px;
                   overflow-y: auto;
@@ -212,20 +125,39 @@ export default function supernova() {
                       font-size: 11px;
                       font-style: italic;
                     ">Defines the AI's role, behavior, and response style</p>
-                    <textarea 
-                      id="system-prompt"
-                      placeholder="Enter system prompt..."
-                      style="
-                        width: 100%;
-                        height: 120px;
-                        padding: 12px;
-                        border: 1px solid #d9d9d9;
-                        border-radius: 4px;
-                        font-size: 13px;
-                        font-family: 'Source Sans Pro', sans-serif;
-                        resize: vertical;
-                        box-sizing: border-box;
-                      ">${layout?.props?.systemPrompt || 'You are a helpful and professional analytical assistant inside a Qlik Cloud Analytics application. Use the structured data provided in the user prompt along with any additional context they provide to generate your response. Always respond in exactly three bullets. Do not explain your methodology or how you arrived at your answers. Maintain a friendly and respectful tone.'}</textarea>
+                    <div style="display: flex; gap: 4px; align-items: flex-start;">
+                      <textarea 
+                        id="system-prompt"
+                        placeholder="Enter system prompt..."
+                        style="
+                          flex: 1;
+                          height: 120px;
+                          padding: 12px;
+                          border: 1px solid #d9d9d9;
+                          border-radius: 4px;
+                          font-size: 13px;
+                          font-family: 'Source Sans Pro', sans-serif;
+                          resize: vertical;
+                          box-sizing: border-box;
+                        ">${layout?.props?.systemPrompt || 'You are a helpful and professional analytical assistant inside a Qlik Cloud Analytics application. Use the structured data provided in the user prompt along with any additional context they provide to generate your response. Always respond in exactly three bullets. Do not explain your methodology or how you arrived at your answers. Maintain a friendly and respectful tone.'}</textarea>
+                      <button 
+                        onclick="openFieldDialog('system-prompt')"
+                        style="
+                          width: 32px;
+                          height: 32px;
+                          border: 1px solid #d9d9d9;
+                          background: #f5f5f5;
+                          border-radius: 4px;
+                          cursor: pointer;
+                          display: flex;
+                          align-items: center;
+                          justify-content: center;
+                          font-size: 14px;
+                          color: #666;
+                          margin-top: 2px;
+                        "
+                        title="Insert field">➕</button>
+                    </div>
                   </div>
                   
                   <!-- User Prompt -->
@@ -243,28 +175,49 @@ export default function supernova() {
                       font-size: 11px;
                       font-style: italic;
                     ">Conveys the user's intent or query for analysis</p>
-                    <textarea 
-                      id="user-prompt"
-                      placeholder="Enter user prompt..."
-                      style="
-                        width: 100%;
-                        height: 120px;
-                        padding: 12px;
-                        border: 1px solid #d9d9d9;
-                        border-radius: 4px;
-                        font-size: 13px;
-                        font-family: 'Source Sans Pro', sans-serif;
-                        resize: vertical;
-                        box-sizing: border-box;
-                      ">${layout?.props?.userPrompt || ''}</textarea>
+                    <div style="display: flex; gap: 4px; align-items: flex-start;">
+                      <textarea 
+                        id="user-prompt"
+                        placeholder="Enter user prompt..."
+                        style="
+                          flex: 1;
+                          height: 120px;
+                          padding: 12px;
+                          border: 1px solid #d9d9d9;
+                          border-radius: 4px;
+                          font-size: 13px;
+                          font-family: 'Source Sans Pro', sans-serif;
+                          resize: vertical;
+                          box-sizing: border-box;
+                        ">${layout?.props?.userPrompt || ''}</textarea>
+                      <button 
+                        onclick="openFieldDialog('user-prompt')"
+                        style="
+                          width: 32px;
+                          height: 32px;
+                          border: 1px solid #d9d9d9;
+                          background: #f5f5f5;
+                          border-radius: 4px;
+                          cursor: pointer;
+                          display: flex;
+                          align-items: center;
+                          justify-content: center;
+                          font-size: 14px;
+                          color: #666;
+                          margin-top: 2px;
+                        "
+                        title="Insert field">➕</button>
+                    </div>
                   </div>
                 </div>
 
-                <!-- Right Column: Active Mappings -->
+                <!-- Right Column: Chatbot Assistant -->
                 <div style="
                   width: 30%;
                   padding: 20px;
                   overflow-y: auto;
+                  display: flex;
+                  flex-direction: column;
                 ">
                   <h3 style="
                     margin: 0 0 16px 0;
@@ -273,19 +226,129 @@ export default function supernova() {
                     font-weight: 600;
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
-                  ">Active Mappings</h3>
+                  ">🤖 Prompt Assistant</h3>
                   
-                  <div id="active-mappings" style="
-                    min-height: 200px;
+                  <!-- Chat Messages -->
+                  <div id="chat-messages" style="
+                    flex: 1;
+                    min-height: 300px;
+                    max-height: 400px;
+                    overflow-y: auto;
+                    border: 1px solid #e8e8e8;
+                    border-radius: 6px;
+                    padding: 12px;
+                    background: #fafafa;
+                    margin-bottom: 12px;
+                  ">
+                    <!-- Welcome Message -->
+                    <div style="
+                      background: #e6f7ff;
+                      border: 1px solid #91d5ff;
+                      border-radius: 8px;
+                      padding: 8px 12px;
+                      margin-bottom: 8px;
+                      font-size: 12px;
+                      color: #003a8c;
+                    ">
+                      👋 Hi! I'm here to help you craft effective prompts for your Qlik data analysis. Ask me anything about:
+                      <br/>• System prompt suggestions
+                      <br/>• User prompt examples  
+                      <br/>• Best practices for AI analysis
+                    </div>
+                  </div>
+                  
+                  <!-- Chat Input -->
+                  <div style="
+                    display: flex;
+                    gap: 8px;
+                    align-items: flex-end;
+                  ">
+                    <textarea 
+                      id="chat-input"
+                      placeholder="Ask for prompt suggestions..."
+                      style="
+                        flex: 1;
+                        height: 60px;
+                        padding: 8px 12px;
+                        border: 1px solid #d9d9d9;
+                        border-radius: 4px;
+                        font-size: 12px;
+                        font-family: 'Source Sans Pro', sans-serif;
+                        resize: none;
+                        box-sizing: border-box;
+                      "
+                    ></textarea>
+                    <button 
+                      id="send-chat"
+                      style="
+                        width: 36px;
+                        height: 36px;
+                        border: 1px solid #1890ff;
+                        background: #1890ff;
+                        color: white;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 16px;
+                        margin-bottom: 2px;
+                      "
+                      title="Send message">📤</button>
+                  </div>
+                  
+                  <!-- Quick Actions -->
+                  <div style="
+                    margin-top: 12px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 6px;
                   ">
                     <div style="
-                      text-align: center;
-                      color: #8c8c8c;
-                      font-style: italic;
-                      margin-top: 40px;
-                    ">
-                      Click on data fields to add mappings
-                    </div>
+                      font-size: 11px;
+                      color: #666;
+                      margin-bottom: 4px;
+                      font-weight: 500;
+                    ">Quick Actions:</div>
+                    <button 
+                      class="quick-action"
+                      onclick="sendQuickMessage('Suggest a professional system prompt for Qlik data analysis')"
+                      style="
+                        padding: 6px 10px;
+                        border: 1px solid #d9d9d9;
+                        background: white;
+                        color: #666;
+                        border-radius: 3px;
+                        cursor: pointer;
+                        font-size: 11px;
+                        text-align: left;
+                      ">🤖 Suggest system prompt</button>
+                    <button 
+                      class="quick-action"
+                      onclick="sendQuickMessage('Help me create an effective user prompt with field references')"
+                      style="
+                        padding: 6px 10px;
+                        border: 1px solid #d9d9d9;
+                        background: white;
+                        color: #666;
+                        border-radius: 3px;
+                        cursor: pointer;
+                        font-size: 11px;
+                        text-align: left;
+                      ">👤 Suggest user prompt</button>
+                    <button 
+                      class="quick-action"
+                      onclick="sendQuickMessage('What are best practices for AI prompts in business intelligence?')"
+                      style="
+                        padding: 6px 10px;
+                        border: 1px solid #d9d9d9;
+                        background: white;
+                        color: #666;
+                        border-radius: 3px;
+                        cursor: pointer;
+                        font-size: 11px;
+                        text-align: left;
+                      ">✨ Best practices</button>
                   </div>
                 </div>
               </div>
@@ -322,6 +385,26 @@ export default function supernova() {
 
           document.body.appendChild(modal);
 
+          // Initialize field highlighting for existing content and add event listeners
+          setTimeout(() => {
+            const systemPrompt = document.getElementById('system-prompt');
+            const userPrompt = document.getElementById('user-prompt');
+            
+            // Apply initial highlighting
+            applyFieldHighlighting('system-prompt');
+            applyFieldHighlighting('user-prompt');
+            
+            // Add real-time update listeners
+            if (systemPrompt) {
+              systemPrompt.addEventListener('input', () => applyFieldHighlighting('system-prompt'));
+              systemPrompt.addEventListener('paste', () => setTimeout(() => applyFieldHighlighting('system-prompt'), 10));
+            }
+            if (userPrompt) {
+              userPrompt.addEventListener('input', () => applyFieldHighlighting('user-prompt'));
+              userPrompt.addEventListener('paste', () => setTimeout(() => applyFieldHighlighting('user-prompt'), 10));
+            }
+          }, 50);
+
           // Add event listeners
           document.getElementById('close-modal').onclick = () => {
             document.body.removeChild(modal);
@@ -337,84 +420,394 @@ export default function supernova() {
             document.body.removeChild(modal);
           };
 
-          // Global functions for field mapping
-          window.addToMapping = (fieldName, fieldType) => {
-            const mappingsContainer = document.getElementById('active-mappings');
-            const existingMappings = mappingsContainer.querySelectorAll('.mapping-item');
-            
-            // Check if already mapped
-            for (let mapping of existingMappings) {
-              if (mapping.dataset.fieldName === fieldName) {
-                return; // Already mapped
-              }
-            }
-            
-            // Clear placeholder text if this is first mapping
-            if (existingMappings.length === 0) {
-              mappingsContainer.innerHTML = '';
-            }
-            
-            const mappingItem = document.createElement('div');
-            mappingItem.className = 'mapping-item';
-            mappingItem.dataset.fieldName = fieldName;
-            mappingItem.dataset.fieldType = fieldType;
-            mappingItem.style.cssText = `
-              padding: 8px 12px;
-              margin: 4px 0;
-              background: #e6f7ff;
-              border: 1px solid #91d5ff;
-              border-radius: 4px;
-              font-size: 13px;
-              color: #003a8c;
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-            `;
-            
-            mappingItem.innerHTML = `
-              <span>${fieldType === 'dimension' ? '📊' : '📈'} ${fieldName}</span>
-              <button onclick="removeMapping(this)" style="
-                background: none;
-                border: none;
-                color: #ff4d4f;
-                cursor: pointer;
-                font-size: 14px;
-                padding: 0;
-                width: 16px;
-                height: 16px;
-              ">&times;</button>
-            `;
-            
-            mappingsContainer.appendChild(mappingItem);
-          };
-
-          window.removeMapping = (button) => {
-            const mappingItem = button.closest('.mapping-item');
-            const mappingsContainer = document.getElementById('active-mappings');
-            mappingsContainer.removeChild(mappingItem);
-            
-            // Show placeholder if no mappings left
-            if (mappingsContainer.children.length === 0) {
-              mappingsContainer.innerHTML = `
-                <div style="
-                  text-align: center;
-                  color: #8c8c8c;
-                  font-style: italic;
-                  margin-top: 40px;
-                ">
-                  Click on data fields to add mappings
-                </div>
-              `;
-            }
-          };
-
           // Close modal when clicking outside
           modal.onclick = (e) => {
             if (e.target === modal) {
               document.body.removeChild(modal);
             }
           };
+
+          // Global functions for chatbot assistant
+          window.sendQuickMessage = (message) => {
+            const chatInput = document.getElementById('chat-input');
+            chatInput.value = message;
+            sendChatMessage();
+          };
+
+          const sendChatMessage = () => {
+            const chatInput = document.getElementById('chat-input');
+            const chatMessages = document.getElementById('chat-messages');
+            const message = chatInput.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message
+            const userMessage = document.createElement('div');
+            userMessage.style.cssText = `
+              background: #1890ff;
+              color: white;
+              border-radius: 8px;
+              padding: 8px 12px;
+              margin-bottom: 8px;
+              font-size: 12px;
+              margin-left: 20px;
+              text-align: right;
+            `;
+            userMessage.textContent = message;
+            chatMessages.appendChild(userMessage);
+            
+            // Add loading indicator
+            const loadingMessage = document.createElement('div');
+            loadingMessage.id = 'loading-message';
+            loadingMessage.style.cssText = `
+              background: #f0f0f0;
+              border: 1px solid #d9d9d9;
+              border-radius: 8px;
+              padding: 8px 12px;
+              margin-bottom: 8px;
+              font-size: 12px;
+              color: #666;
+              margin-right: 20px;
+              font-style: italic;
+            `;
+            loadingMessage.textContent = '🤖 Thinking...';
+            chatMessages.appendChild(loadingMessage);
+            
+            // Clear input and scroll to bottom
+            chatInput.value = '';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            // TODO: Implement actual AI response
+            setTimeout(() => {
+              loadingMessage.remove();
+              
+              const aiResponse = document.createElement('div');
+              aiResponse.style.cssText = `
+                background: #f0f0f0;
+                border: 1px solid #d9d9d9;
+                border-radius: 8px;
+                padding: 8px 12px;
+                margin-bottom: 8px;
+                font-size: 12px;
+                color: #333;
+                margin-right: 20px;
+              `;
+              aiResponse.innerHTML = `🤖 <strong>Assistant:</strong><br/>This is a placeholder response. In the next phase, I'll integrate with Claude LLM to provide intelligent prompt suggestions based on your question: "${message}"`;
+              chatMessages.appendChild(aiResponse);
+              
+              chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 1500);
+          };
+
+          // Add event listeners for chat
+          setTimeout(() => {
+            const chatInput = document.getElementById('chat-input');
+            const sendButton = document.getElementById('send-chat');
+            
+            if (sendButton) {
+              sendButton.onclick = sendChatMessage;
+            }
+            
+            if (chatInput) {
+              chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  sendChatMessage();
+                }
+              });
+            }
+          }, 100);
+
+          // Global function for field dialog
+          window.openFieldDialog = (targetTextareaId) => {
+            const fieldDialog = document.createElement('div');
+            fieldDialog.id = 'field-dialog';
+            fieldDialog.style.cssText = `
+              position: fixed;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              background: rgba(0, 0, 0, 0.5);
+              z-index: 10001;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            `;
+
+            fieldDialog.innerHTML = `
+              <div style="
+                background: white;
+                border-radius: 6px;
+                width: 400px;
+                max-height: 500px;
+                display: flex;
+                flex-direction: column;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+              ">
+                <!-- Header -->
+                <div style="
+                  padding: 16px 20px;
+                  border-bottom: 1px solid #f0f0f0;
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                ">
+                  <h3 style="
+                    margin: 0;
+                    color: #333;
+                    font-size: 16px;
+                    font-weight: 600;
+                  ">Insert Field</h3>
+                  <button id="close-field-dialog" style="
+                    background: none;
+                    border: none;
+                    font-size: 18px;
+                    cursor: pointer;
+                    color: #666;
+                    padding: 4px;
+                  ">&times;</button>
+                </div>
+
+                <!-- Fields List -->
+                <div style="
+                  flex: 1;
+                  padding: 16px 20px;
+                  overflow-y: auto;
+                  max-height: 350px;
+                ">
+                  ${dimensions.length > 0 ? `
+                    <div style="margin-bottom: 20px;">
+                      <h4 style="
+                        margin: 0 0 8px 0;
+                        color: #666;
+                        font-size: 12px;
+                        font-weight: 500;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                      ">Dimensions (${dimensions.length})</h4>
+                      ${dimensions.map(dim => `
+                        <div style="
+                          padding: 8px 12px;
+                          margin: 4px 0;
+                          background: #f8f9fa;
+                          border: 1px solid #e9ecef;
+                          border-radius: 4px;
+                          cursor: pointer;
+                          font-size: 13px;
+                          color: #495057;
+                          transition: all 0.2s ease;
+                          display: flex;
+                          align-items: center;
+                          gap: 8px;
+                        " 
+                        onmouseover="this.style.background='#e9ecef'"
+                        onmouseout="this.style.background='#f8f9fa'"
+                        onclick="insertFieldIntoPrompt('${targetTextareaId}', '${dim.qFallbackTitle}')">
+                          <span>📊</span>
+                          <span>${dim.qFallbackTitle}</span>
+                        </div>
+                      `).join('')}
+                    </div>
+                  ` : ''}
+                  
+                  ${measures.length > 0 ? `
+                    <div>
+                      <h4 style="
+                        margin: 0 0 8px 0;
+                        color: #666;
+                        font-size: 12px;
+                        font-weight: 500;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                      ">Measures (${measures.length})</h4>
+                      ${measures.map(measure => `
+                        <div style="
+                          padding: 8px 12px;
+                          margin: 4px 0;
+                          background: #f8f9fa;
+                          border: 1px solid #e9ecef;
+                          border-radius: 4px;
+                          cursor: pointer;
+                          font-size: 13px;
+                          color: #495057;
+                          transition: all 0.2s ease;
+                          display: flex;
+                          align-items: center;
+                          gap: 8px;
+                        "
+                        onmouseover="this.style.background='#e9ecef'"
+                        onmouseout="this.style.background='#f8f9fa'"
+                        onclick="insertFieldIntoPrompt('${targetTextareaId}', '${measure.qFallbackTitle}')">
+                          <span>📈</span>
+                          <span>${measure.qFallbackTitle}</span>
+                        </div>
+                      `).join('')}
+                    </div>
+                  ` : ''}
+                  
+                  ${dimensions.length === 0 && measures.length === 0 ? `
+                    <div style="
+                      text-align: center;
+                      color: #8c8c8c;
+                      font-style: italic;
+                      margin-top: 40px;
+                    ">
+                      No data fields available.<br/>
+                      Add dimensions and measures first.
+                    </div>
+                  ` : ''}
+                </div>
+
+                <!-- Footer -->
+                <div style="
+                  padding: 12px 20px;
+                  border-top: 1px solid #f0f0f0;
+                  display: flex;
+                  justify-content: flex-end;
+                ">
+                  <button id="close-field-dialog-btn" style="
+                    padding: 6px 12px;
+                    border: 1px solid #d9d9d9;
+                    background: white;
+                    color: #666;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 13px;
+                  ">Close</button>
+                </div>
+              </div>
+            `;
+
+            document.body.appendChild(fieldDialog);
+
+            // Add event listeners
+            document.getElementById('close-field-dialog').onclick = () => {
+              document.body.removeChild(fieldDialog);
+            };
+            
+            document.getElementById('close-field-dialog-btn').onclick = () => {
+              document.body.removeChild(fieldDialog);
+            };
+
+            // Close dialog when clicking outside
+            fieldDialog.onclick = (e) => {
+              if (e.target === fieldDialog) {
+                document.body.removeChild(fieldDialog);
+              }
+            };
+          };
+
+          // Function to apply field highlighting using overlay technique
+          const applyFieldHighlighting = (textareaId) => {
+            const textarea = document.getElementById(textareaId);
+            if (!textarea) return;
+            
+            // Create highlighting container if it doesn't exist
+            let container = textarea.parentElement;
+            if (!container.classList.contains('highlight-container')) {
+              // Wrap textarea in highlighting container
+              const newContainer = document.createElement('div');
+              newContainer.className = 'highlight-container';
+              newContainer.style.cssText = `
+                position: relative;
+                flex: 1;
+                display: flex;
+              `;
+              
+              container.insertBefore(newContainer, textarea);
+              newContainer.appendChild(textarea);
+              container = newContainer;
+              
+                             // Create highlight overlay
+               const highlight = document.createElement('div');
+               highlight.className = 'highlight-overlay';
+               
+               // Get computed styles from textarea to match exactly
+               const textareaStyles = window.getComputedStyle(textarea);
+               
+               highlight.style.cssText = `
+                 position: absolute;
+                 top: 0;
+                 left: 0;
+                 right: 0;
+                 bottom: 0;
+                 padding: ${textareaStyles.padding};
+                 margin: 0;
+                 border: 1px solid transparent;
+                 border-radius: ${textareaStyles.borderRadius};
+                 font-family: ${textareaStyles.fontFamily};
+                 font-size: ${textareaStyles.fontSize};
+                 line-height: ${textareaStyles.lineHeight};
+                 letter-spacing: ${textareaStyles.letterSpacing};
+                 word-spacing: ${textareaStyles.wordSpacing};
+                 white-space: pre-wrap;
+                 word-wrap: break-word;
+                 overflow: hidden;
+                 pointer-events: none;
+                 color: #333;
+                 z-index: 1;
+                 box-sizing: border-box;
+                 text-align: ${textareaStyles.textAlign};
+               `;
+              container.appendChild(highlight);
+              
+                             // Style textarea to be transparent background and text
+               textarea.style.position = 'relative';
+               textarea.style.zIndex = '2';
+               textarea.style.backgroundColor = 'transparent';
+               textarea.style.color = 'transparent';
+               textarea.style.caretColor = '#333';
+              
+              // Sync scrolling
+              textarea.addEventListener('scroll', () => {
+                highlight.scrollTop = textarea.scrollTop;
+                highlight.scrollLeft = textarea.scrollLeft;
+              });
+            }
+            
+            // Update highlight content
+            const highlight = container.querySelector('.highlight-overlay');
+            if (highlight) {
+                             const text = textarea.value;
+               const highlightedText = text.replace(/\[([^\]]+)\]/g, 
+                 '<span style="color: #1890ff;">[$1]</span>'
+               );
+              highlight.innerHTML = highlightedText;
+              
+              // Sync scroll position
+              highlight.scrollTop = textarea.scrollTop;
+              highlight.scrollLeft = textarea.scrollLeft;
+            }
+          };
+
+          // Function to insert field into prompt textarea
+          window.insertFieldIntoPrompt = (textareaId, fieldName) => {
+            const textarea = document.getElementById(textareaId);
+            const cursorPosition = textarea.selectionStart;
+            const textBefore = textarea.value.substring(0, cursorPosition);
+            const textAfter = textarea.value.substring(textarea.selectionEnd);
+            
+            // Insert field name at cursor position
+            textarea.value = textBefore + '[' + fieldName + ']' + textAfter;
+            
+            // Move cursor to after inserted field
+            const newPosition = cursorPosition + fieldName.length + 2;
+            textarea.setSelectionRange(newPosition, newPosition);
+            textarea.focus();
+            
+            // Apply highlighting after insertion
+            setTimeout(() => applyFieldHighlighting(textareaId), 10);
+            
+            // Close the field dialog
+            const fieldDialog = document.getElementById('field-dialog');
+            if (fieldDialog) {
+              document.body.removeChild(fieldDialog);
+            }
+          };
         };
+
+
 
         // Clear and setup the exact UI design
         element.innerHTML = `
