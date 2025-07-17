@@ -210,8 +210,12 @@
               component: "button",
               label: "Prompts & Field Mapping",
               action: function(data) {
-                // This will be implemented later to open prompts configuration
-                console.log("Opening Prompts & Field Mapping dialog");
+                // Call the modal function
+                if (window.showPromptsModal) {
+                  window.showPromptsModal();
+                } else {
+                  console.log("Modal function not available");
+                }
               },
             },
             systemPromptDescription: {

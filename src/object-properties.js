@@ -36,7 +36,7 @@ export default {
       
       // Prompts & Field Mapping properties
       promptsConfigured: false, // Track if prompts have been configured
-      systemPrompt: "", // System prompt content
+      systemPrompt: "You are a helpful and professional analytical assistant inside a Qlik Cloud Analytics application. Use the structured data provided in the user prompt along with any additional context they provide to generate your response. Always respond in exactly three bullets. Do not explain your methodology or how you arrived at your answers. Maintain a friendly and respectful tone.", // System prompt content
       userPrompt: "", // User prompt content
     },
   };
