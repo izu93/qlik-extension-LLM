@@ -14,12 +14,6 @@
           type: "items",
           label: "LLM Configuration",
           items: {
-            extensionVersion: {
-              type: "string",
-              component: "text",
-              label: "Extension Version",
-              show: "v3.0 - Streamlined Custom Expression",
-            },
             connectionType: {
               type: "string",
               component: "dropdown",
@@ -198,6 +192,37 @@
               show: function (data) {
                 return data.props?.enableSelectionValidation || false;
               },
+            },
+          },
+        },
+
+        // Prompts & Field Mapping section
+        promptsFieldMapping: {
+          type: "items",
+          label: "Prompts & Field Mapping",
+          items: {
+            promptsDescription: {
+              component: "text",
+              label: "Configure prompts and map data fields to optimize analysis results. System prompts define the AI's role and behavior, while user prompts specify the analysis tasks.",
+              style: "font-style: italic; color: #666; font-size: 14px; margin-bottom: 15px;",
+            },
+            promptsButton: {
+              component: "button",
+              label: "Prompts & Field Mapping",
+              action: function(data) {
+                // This will be implemented later to open prompts configuration
+                console.log("Opening Prompts & Field Mapping dialog");
+              },
+            },
+            systemPromptDescription: {
+              component: "text",
+              label: "System Prompt: An instruction that defines the model's role, behavior, or response style within a given interaction.",
+              style: "font-weight: 500; color: #333; font-size: 13px; margin-top: 15px;",
+            },
+            userPromptDescription: {
+              component: "text", 
+              label: "User Prompt: The input that conveys the user's intent or query, prompting the model to generate a relevant response.",
+              style: "font-weight: 500; color: #333; font-size: 13px; margin-top: 8px;",
             },
           },
         },

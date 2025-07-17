@@ -29,6 +29,7 @@ export default function supernova() {
         const measureCount = layout?.qHyperCube?.qMeasureInfo?.length || 0;
         const hasDimensionsOrMeasures = dimensionCount > 0 || measureCount > 0;
         const isSelectionValidationConfigured = !!(layout?.props?.enableSelectionValidation && layout?.props?.customValidationExpression?.trim());
+        const arePromptsConfigured = !!(layout?.props?.promptsConfigured || (layout?.props?.systemPrompt?.trim() && layout?.props?.userPrompt?.trim()));
 
         // Clear and setup the exact UI design
         element.innerHTML = `
@@ -195,6 +196,51 @@ export default function supernova() {
                   ">${isSelectionValidationConfigured ? 
                     'Custom validation expression configured' : 
                     'Enable validation in Selection Validation panel'
+                  }</p>
+                </div>
+              </div>
+
+              <!-- Step 4: Add AI Prompts -->
+              <div style="
+                background: ${arePromptsConfigured ? '#f6ffed' : '#fff7e6'};
+                border: 1px solid ${arePromptsConfigured ? '#b7eb8f' : '#ffd591'};
+                border-radius: 6px;
+                padding: 10px 10px;
+                display: flex;
+                align-items: center;
+                gap: 16px;
+                transition: all 0.3s ease;
+              ">
+                <div style="
+                  width: 32px;
+                  height: 32px;
+                  border-radius: 50%;
+                  background: ${arePromptsConfigured ? '#52c41a' : '#fa8c16'};
+                  color: white;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-weight: 600;
+                  font-size: 16px;
+                  flex-shrink: 0;
+                ">
+                  ${arePromptsConfigured ? '✓' : '4'}
+                </div>
+                <div style="flex: 1;">
+                  <h3 style="
+                    margin: 0 0 4px 0;
+                    color: ${arePromptsConfigured ? '#52c41a' : '#fa8c16'};
+                    font-size: 16px;
+                    font-weight: 600;
+                  ">${arePromptsConfigured ? 'Prompts Configured ✓' : 'Add Prompts'}</h3>
+                  <p style="
+                    margin: 0;
+                    color: #8c8c8c;
+                    font-size: 14px;
+                    font-weight: 400;
+                  ">${arePromptsConfigured ? 
+                    'System and user prompts configured' : 
+                    'Click Prompts & Field Mapping to add prompts'
                   }</p>
                 </div>
               </div>
