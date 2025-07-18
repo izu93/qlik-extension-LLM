@@ -1506,6 +1506,114 @@ export default function supernova() {
           }
         };
 
+
+
+        // Simple highlighting function that works on already-rendered content
+        const applySimpleHighlighting = (contentElement, layout) => {
+          if (!contentElement) return;
+          
+          console.log('🎨 Applying simple highlighting...');
+          
+          // Add CSS styles if not already added
+          if (!document.getElementById('highlight-styles')) {
+            const style = document.createElement('style');
+            style.id = 'highlight-styles';
+                         style.textContent = `
+               .qlik-field { background: #e6f7ff !important; color: #0066cc !important; padding: 1px 3px !important; border-radius: 3px !important; font-weight: 600 !important; }
+               .qlik-value { background: #e6f7ff !important; color: #0066cc !important; padding: 1px 3px !important; border-radius: 3px !important; font-weight: 500 !important; }
+               .number-highlight { background: #f3e8ff !important; color: #7c3aed !important; padding: 1px 3px !important; border-radius: 3px !important; font-weight: 600 !important; }
+             `;
+            document.head.appendChild(style);
+          }
+          
+          // Get field information from the extension
+          const fieldNames = new Set();
+          const fieldValues = new Set();
+          const numericValues = new Set();
+          
+          const hypercube = layout?.qHyperCube;
+          if (hypercube) {
+            // Collect dimension field names and values
+            hypercube.qDimensionInfo?.forEach((dim, index) => {
+              const actualFieldName = dim.qGroupFieldDefs?.[0] || dim.qFallbackTitle;
+              if (actualFieldName && actualFieldName.length > 2) {
+                fieldNames.add(actualFieldName);
+              }
+              
+              // Extract values from data
+              hypercube.qDataPages?.[0]?.qMatrix?.forEach(row => {
+                const value = row[index]?.qText;
+                if (value && value.trim() && value.length > 2) {
+                  fieldValues.add(value.trim());
+                }
+              });
+            });
+            
+            // Collect measure field names and values
+            hypercube.qMeasureInfo?.forEach((measure, index) => {
+              const actualFieldName = measure.qDef?.qDef || measure.qFallbackTitle;
+              if (actualFieldName && actualFieldName.length > 2) {
+                fieldNames.add(actualFieldName);
+              }
+              
+              // Extract values from data
+              const measureIndex = (hypercube.qDimensionInfo?.length || 0) + index;
+              hypercube.qDataPages?.[0]?.qMatrix?.forEach(row => {
+                const value = row[measureIndex]?.qText || row[measureIndex]?.qNum;
+                if (value !== undefined && value !== '' && String(value).length > 1) {
+                  fieldValues.add(String(value));
+                  // Separately track numeric values from your data
+                  if (!isNaN(value) && value !== '') {
+                    numericValues.add(String(value));
+                  }
+                }
+              });
+            });
+          }
+          
+          console.log('📊 Fields to highlight:', Array.from(fieldNames).slice(0, 3));
+          console.log('📊 Values to highlight:', Array.from(fieldValues).slice(0, 3));
+          console.log('📊 Numeric values to highlight:', Array.from(numericValues).slice(0, 3));
+          
+          // Get text content and apply highlighting using text replacement
+          let textContent = contentElement.innerHTML;
+          
+          // Format bullets: larger bullets only, more specific matching
+          textContent = textContent.replace(/•/g, '<br><span style="font-size: 20px;">•</span>');
+          // Only match numbers at start of line or after line break, followed by space and text
+          textContent = textContent.replace(/(^|\n)(\d+\.)\s+([A-Z])/g, '$1<span style="font-size: 18px; font-weight: bold;">$2</span> $3');
+          
+          // Highlight numeric values first (purple) - before other field values
+          numericValues.forEach(numValue => {
+            if (!isNaN(numValue) && String(numValue).length > 0) {
+              const escapedNum = String(numValue).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              const regex = new RegExp(`\\b${escapedNum}\\b`, 'gi');
+              textContent = textContent.replace(regex, `<span class="number-highlight">${numValue}</span>`);
+            }
+          });
+          
+          // Highlight field names (blue)
+          fieldNames.forEach(fieldName => {
+            const escapedField = fieldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`\\b${escapedField}\\b`, 'gi');
+            textContent = textContent.replace(regex, `<span class="qlik-field">${fieldName}</span>`);
+          });
+          
+          // Highlight non-numeric field values (blue)
+          fieldValues.forEach(value => {
+            if (String(value).length > 2 && isNaN(value)) { // Only non-numeric values
+              const escapedValue = String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              const regex = new RegExp(`\\b${escapedValue}\\b`, 'gi');
+              textContent = textContent.replace(regex, `<span class="qlik-value">${value}</span>`);
+            }
+          });
+          
+          // Apply the highlighted content
+          contentElement.innerHTML = textContent;
+          
+          console.log('✅ Simple highlighting applied');
+        };
+
         // Generate Analysis Function
         const generateAnalysis = async () => {
           try {
@@ -1597,8 +1705,9 @@ export default function supernova() {
             // Call Claude using Nebula.js model API
             const response = await callClaudeAPI(systemPrompt, userPrompt, connectionName, temperature);
             
-                         // Show results
+                         // Show results with simple highlighting
              contentDiv.innerHTML = response;
+             applySimpleHighlighting(contentDiv, layout);
              resultDiv.style.display = 'block';
 
              console.log('✅ Analysis completed successfully');
