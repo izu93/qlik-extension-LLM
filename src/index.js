@@ -1232,8 +1232,343 @@ export default function supernova() {
 
             </div>
 
+            <!-- Analysis Button - Shows when all steps completed -->
+            ${isConnectionConfigured && hasDimensionsOrMeasures && arePromptsConfigured ? `
+              <div style="
+                width: 100%; 
+                max-width: 500px; 
+                margin-top: 30px;
+                text-align: center;
+              ">
+                <button id="analyze-btn" style="
+                  background: #1890ff;
+                  color: white;
+                  border: none;
+                  border-radius: 6px;
+                  padding: 12px 24px;
+                  font-size: 16px;
+                  font-weight: 600;
+                  cursor: pointer;
+                  transition: all 0.3s ease;
+                  min-width: 200px;
+                " onmouseover="this.style.background='#0c7cd5'" onmouseout="this.style.background='#1890ff'">
+                  🚀 Generate Analysis
+                </button>
+                
+                <div id="analysis-result" style="
+                  margin-top: 20px;
+                  padding: 20px;
+                  background: #f8f9fa;
+                  border: 1px solid #e9ecef;
+                  border-radius: 6px;
+                  text-align: left;
+                  display: none;
+                ">
+                  <h4 style="margin: 0 0 10px 0; color: #333;">AI Analysis Results:</h4>
+                  <div id="analysis-content" style="color: #666; line-height: 1.5;"></div>
+                </div>
+              </div>
+            ` : ''}
+
           </div>
         `;
+
+        // Add analyze button click handler
+        const analyzeBtn = document.getElementById('analyze-btn');
+        if (analyzeBtn) {
+          analyzeBtn.onclick = async () => {
+            await generateAnalysis();
+          };
+        }
+
+        // Replace field references in prompts with actual data
+        const replaceFieldReferences = async (prompt, layout) => {
+          try {
+            console.log('🔄 Replacing field references in prompt...');
+            
+            let processedPrompt = prompt;
+            const hypercube = layout?.qHyperCube;
+            
+            if (!hypercube || !hypercube.qDataPages?.[0]?.qMatrix?.length) {
+              console.warn('⚠️ No data available for field replacement');
+              return processedPrompt;
+            }
+
+            const matrix = hypercube.qDataPages[0].qMatrix;
+            const dimensionInfo = hypercube.qDimensionInfo || [];
+            const measureInfo = hypercube.qMeasureInfo || [];
+            
+            // Build field data map
+            const fieldData = {};
+            
+                         // Map dimension data using actual field names from your extension
+             dimensionInfo.forEach((dim, index) => {
+               // Use the actual field name from qGroupFieldDefs (the real field name)
+               const actualFieldName = dim.qGroupFieldDefs?.[0] || dim.qFallbackTitle || `Dimension${index}`;
+               const displayName = dim.qFallbackTitle || actualFieldName;
+               
+               const values = matrix.map(row => row[index]?.qText || '').filter(v => v.trim());
+               
+               // Store with both actual field name and display name for flexible matching
+               fieldData[actualFieldName] = values.join(', ');
+               if (displayName !== actualFieldName) {
+                 fieldData[displayName] = values.join(', ');
+               }
+               
+               console.log(`📊 Dimension: [${actualFieldName}] = ${values.length} values`);
+             });
+             
+             // Map measure data using actual field names from your extension
+             measureInfo.forEach((measure, index) => {
+               // Use the actual field name from the measure definition
+               const actualFieldName = measure.qDef?.qDef || measure.qFallbackTitle || `Measure${index}`;
+               const displayName = measure.qFallbackTitle || actualFieldName;
+               
+               const measureIndex = dimensionInfo.length + index;
+               const values = matrix.map(row => row[measureIndex]?.qText || row[measureIndex]?.qNum || '').filter(v => v !== '');
+               
+               // Store with both actual field name and display name for flexible matching
+               fieldData[actualFieldName] = values.join(', ');
+               if (displayName !== actualFieldName) {
+                 fieldData[displayName] = values.join(', ');
+               }
+               
+               console.log(`📊 Measure: [${actualFieldName}] = ${values.length} values`);
+             });
+
+            console.log('📊 Available fields for replacement:', Object.keys(fieldData));
+
+            // Replace field references in the format [FieldName]
+            const fieldPattern = /\[([^\]]+)\]/g;
+            processedPrompt = processedPrompt.replace(fieldPattern, (match, fieldName) => {
+              if (fieldData[fieldName]) {
+                console.log(`🔄 Replaced [${fieldName}] with data: ${fieldData[fieldName].substring(0, 50)}...`);
+                return fieldData[fieldName];
+              } else {
+                console.warn(`⚠️ Field [${fieldName}] not found in data`);
+                return match; // Keep original if not found
+              }
+            });
+
+                         // Special handling for concatenated data patterns like [Field1]|[Field2]|[Field3]
+             const pipePattern = /\[([^\]]+)\]\|(\[([^\]]+)\])/g;
+             let match;
+             while ((match = pipePattern.exec(processedPrompt)) !== null) {
+               console.log('🔍 Found pipe-separated pattern, creating data table...');
+               
+               // Build data table with all rows
+               let dataRows = [];
+               matrix.forEach(row => {
+                 const rowData = [];
+                 
+                 // Add all dimensions
+                 dimensionInfo.forEach((dim, index) => {
+                   rowData.push(row[index]?.qText || '');
+                 });
+                 
+                 // Add all measures
+                 measureInfo.forEach((measure, index) => {
+                   const measureIndex = dimensionInfo.length + index;
+                   rowData.push(row[measureIndex]?.qText || row[measureIndex]?.qNum || '');
+                 });
+                 
+                 dataRows.push(rowData.join('|'));
+               });
+               
+               // Replace the entire pattern with actual data
+               const originalPattern = match[0];
+               processedPrompt = processedPrompt.replace(originalPattern, dataRows.join('\n'));
+               console.log(`🔄 Replaced "${originalPattern}" with ${dataRows.length} data rows`);
+               break; // Handle one pattern at a time
+             }
+
+            console.log('✅ Field replacement completed');
+            return processedPrompt;
+            
+          } catch (error) {
+            console.error('❌ Error in field replacement:', error);
+            return prompt; // Return original prompt if replacement fails
+          }
+        };
+
+        // Generate Analysis Function
+        const generateAnalysis = async () => {
+          try {
+            const analyzeBtn = document.getElementById('analyze-btn');
+            const resultDiv = document.getElementById('analysis-result');
+            const contentDiv = document.getElementById('analysis-content');
+
+            // Show loading state
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = '🤖 Analyzing...';
+            analyzeBtn.style.background = '#f5f5f5';
+            analyzeBtn.style.color = '#999';
+            analyzeBtn.style.cursor = 'not-allowed';
+
+            // Get current data from layout
+            const dataRows = layout?.qHyperCube?.qDataPages?.[0]?.qMatrix?.length || 0;
+            const dimensions = layout?.qHyperCube?.qDimensionInfo?.length || 0;
+            const measures = layout?.qHyperCube?.qMeasureInfo?.length || 0;
+
+                         // Get prompts (with localStorage fallback)
+             let systemPrompt = layout?.props?.systemPrompt || '';
+             let userPrompt = layout?.props?.userPrompt || '';
+             
+             // Fallback to localStorage if not in layout
+             if (!systemPrompt || !userPrompt) {
+               try {
+                 const extensionId = layout?.qInfo?.qId || 'qlikExtensionLLM';
+                 const stored = localStorage.getItem(`qlik_prompts_${extensionId}`);
+                 if (stored) {
+                   const storedData = JSON.parse(stored);
+                   systemPrompt = systemPrompt || storedData.systemPrompt || '';
+                   userPrompt = userPrompt || storedData.userPrompt || '';
+                 }
+               } catch (e) {
+                 console.warn('Could not load prompts from localStorage:', e);
+               }
+             }
+
+             // Replace field references with actual data
+             userPrompt = await replaceFieldReferences(userPrompt, layout);
+
+            console.log('🔍 Generating analysis with context:', {
+              systemPrompt: systemPrompt.substring(0, 50) + '...',
+              userPrompt: userPrompt.substring(0, 50) + '...',
+              dataRows,
+              dimensions,
+              measures
+            });
+
+            // Get connection details
+            const connectionName = layout?.props?.connectionName || '';
+            const temperature = layout?.props?.temperature || 0.7;
+            
+            console.log('🤖 Calling Claude via Qlik SSE:', {
+              connection: connectionName,
+              systemPromptLength: systemPrompt.length,
+              userPromptLength: userPrompt.length,
+              temperature
+            });
+
+            // Call Claude using Nebula.js model API
+            const response = await callClaudeAPI(systemPrompt, userPrompt, connectionName, temperature);
+            
+            // Show results
+            contentDiv.innerHTML = response;
+            resultDiv.style.display = 'block';
+
+            console.log('✅ Analysis completed successfully');
+
+          } catch (error) {
+            console.error('❌ Error generating analysis:', error);
+            
+            const contentDiv = document.getElementById('analysis-content');
+            const resultDiv = document.getElementById('analysis-result');
+            
+            contentDiv.innerHTML = `
+              <div style="color: #d32f2f;">
+                <strong>Error:</strong> ${error.message}<br>
+                <small>Please check your connection configuration and try again.</small>
+              </div>
+            `;
+            resultDiv.style.display = 'block';
+          } finally {
+            // Reset button state
+            const analyzeBtn = document.getElementById('analyze-btn');
+            analyzeBtn.disabled = false;
+            analyzeBtn.textContent = '🚀 Generate Analysis';
+            analyzeBtn.style.background = '#1890ff';
+            analyzeBtn.style.color = 'white';
+            analyzeBtn.style.cursor = 'pointer';
+          }
+        };
+
+                // FIXED: Robust expression building with proper escaping
+        const buildLLMExpression = (fullPrompt, props) => {
+          console.log("🏗️ Building LLM expression (ultra-safe approach)...");
+          
+          // Step 1: Validate inputs
+          const connectionName = String(props.connectionName || '').trim();
+          if (!connectionName) {
+            throw new Error("Connection name is required");
+          }
+          
+          // Step 2: Clean prompt - be more aggressive about removing problematic characters
+          let cleanPrompt = String(fullPrompt || '')
+            .trim()
+            .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, '') // Control chars
+            .replace(/'/g, "'")       // Normalize quotes  
+            .replace(/"/g, '"')       // Normalize double quotes
+            .replace(/\r\n/g, '\n')   // Normalize line endings
+            .replace(/\r/g, '\n');
+          
+          if (!cleanPrompt) {
+            throw new Error("Prompt is empty after cleaning");
+          }
+          
+          console.log("📝 Cleaned prompt length:", cleanPrompt.length);
+          
+          // Step 3: Build config with safe numeric values
+          const temperature = Math.max(0, Math.min(2, Number(props.temperature || 0.7)));
+          const topK = Math.max(1, Math.min(1000, Number(props.topK || 250)));
+          const topP = Math.max(0, Math.min(1, Number(props.topP || 1)));
+          const maxTokens = Math.max(1, Math.min(4000, Number(props.maxTokens || 1000)));
+          
+          // Step 4: Use the simplest possible approach that works - include all parameters
+          const configStr = `{"RequestType":"endpoint","endpoint":{"connectionname":"${connectionName.replace(/"/g, '\\"')}","column":"text","parameters":{"temperature":${temperature},"Top K":${topK},"Top P":${topP},"max_tokens":${maxTokens}}}}`;
+          
+          // Step 5: Use double single quotes for Qlik string escaping
+          const escapedPrompt = cleanPrompt.replace(/'/g, "''");
+          
+          // Step 6: Build expression
+          const expression = `endpoints.ScriptEvalStr('${configStr}', '${escapedPrompt}')`;
+          
+          console.log("🔒 Using ultra-safe Qlik escaping approach");
+          console.log("🔍 Config string:", configStr.substring(0, 100) + "...");
+          console.log("🔍 Escaped prompt preview:", escapedPrompt.substring(0, 100) + "...");
+          console.log("✅ Expression built successfully, length:", expression.length);
+          console.log("🔍 Expression preview:", expression.substring(0, 200) + "...");
+          
+          return expression;
+        };
+
+        // Claude API calling function using the robust approach
+        const callClaudeAPI = async (systemPrompt, userPrompt, connectionName, temperature) => {
+          try {
+            // Combine system and user prompts with proper formatting
+            const fullPrompt = `${systemPrompt}\n\n${userPrompt}\n\nAssistant:`;
+            
+            // Get all props for the expression builder
+            const props = {
+              connectionName: connectionName,
+              temperature: temperature,
+              topK: layout?.props?.topK || 250,
+              topP: layout?.props?.topP || 1,
+              maxTokens: layout?.props?.maxTokens || 1000
+            };
+
+            console.log('🤖 Attempting robust endpoints.ScriptEvalStr call');
+            
+            // Build the expression using the robust method
+            const expressionString = buildLLMExpression(fullPrompt, props);
+
+                         // Use the app object to evaluate the expression
+             const result = await app.evaluate(expressionString);
+             
+             // Handle the result - app.evaluate returns a string directly
+             if (typeof result === 'string' && result.trim()) {
+               console.log('✅ Claude API call successful, response length:', result.length);
+               return result;
+             }
+             
+             throw new Error(`ScriptEvalStr call returned empty or invalid result`);
+
+          } catch (evalError) {
+            console.log('❌ Robust ScriptEvalStr call failed:', evalError);
+            throw new Error(`Claude API call failed: ${evalError.message}. Please check your connection configuration and ensure the connection "${connectionName}" is properly set up.`);
+          }
+        };
 
         // Add click handler for prompts button from ext.js
         window.showPromptsModal = showPromptsModal;
