@@ -1336,7 +1336,7 @@ export default function supernova() {
           </div>
         `;
 
-        // Transform UI to results-focused view
+        // Transform UI to results-focused view - instant and smooth
         const transformToResultsView = () => {
           console.log('🔄 Transforming UI to results view...');
           
@@ -1348,19 +1348,25 @@ export default function supernova() {
           const mainContainer = document.getElementById('main-container');
           
           if (fullHeader && stepsContainer) {
-            // Fade out full UI and button
+            // Fast, smooth fade out - no visible movement
+            fullHeader.style.transition = 'opacity 0.15s ease-out';
+            stepsContainer.style.transition = 'opacity 0.15s ease-out';
+            
+            if (buttonContainer) {
+              buttonContainer.style.transition = 'opacity 0.15s ease-out';
+            }
+            
+            // Quick fade out without transform (no jumping)
             fullHeader.style.opacity = '0';
-            fullHeader.style.transform = 'translateY(-20px)';
             stepsContainer.style.opacity = '0';
-            stepsContainer.style.transform = 'translateY(-20px)';
             
             if (buttonContainer) {
               buttonContainer.style.opacity = '0';
-              buttonContainer.style.transform = 'translateY(-20px)';
             }
             
+            // Much faster transition - almost instant
             setTimeout(() => {
-              // Hide full UI and button
+              // Hide elements immediately
               fullHeader.style.display = 'none';
               stepsContainer.style.display = 'none';
               if (buttonContainer) {
@@ -1370,16 +1376,15 @@ export default function supernova() {
               // Remove grey background for results view
               if (mainContainer) {
                 mainContainer.style.background = 'transparent';
+                mainContainer.style.transition = 'background 0.15s ease-out';
               }
               
-              // Show timeline header inside the results box
+              // Show timeline header inside the results box immediately
               if (timelineHeader) {
                 timelineHeader.style.display = 'block';
-                setTimeout(() => {
-                  timelineHeader.style.opacity = '1';
-                }, 100);
+                timelineHeader.style.opacity = '1';
               }
-            }, 300);
+            }, 150); // Much faster - 150ms instead of 300ms
           }
         };
 
@@ -1508,12 +1513,40 @@ export default function supernova() {
             const resultDiv = document.getElementById('analysis-result');
             const contentDiv = document.getElementById('analysis-content');
 
-                         // Show loading state
+                         // Show loading state with spinner
              analyzeBtn.disabled = true;
-             analyzeBtn.textContent = 'Analyzing...';
+             analyzeBtn.innerHTML = `
+               <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                 <div style="
+                   width: 16px;
+                   height: 16px;
+                   border: 2px solid #f3f3f3;
+                   border-radius: 50%;
+                   border-top: 2px solid #1890ff;
+                   animation: spin 1s linear infinite;
+                 "></div>
+                 <span>Analyzing...</span>
+               </div>
+             `;
              analyzeBtn.style.background = '#f5f5f5';
              analyzeBtn.style.color = '#999';
              analyzeBtn.style.cursor = 'not-allowed';
+             
+                           // Add spinner animation CSS if not already added
+              if (!document.getElementById('spinner-style')) {
+                const style = document.createElement('style');
+                style.id = 'spinner-style';
+                style.textContent = `
+                  @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                  }
+                `;
+                document.head.appendChild(style);
+              }
+
+            // Transform UI immediately when analysis starts
+            transformToResultsView();
 
             // Get current data from layout
             const dataRows = layout?.qHyperCube?.qDataPages?.[0]?.qMatrix?.length || 0;
@@ -1567,9 +1600,6 @@ export default function supernova() {
                          // Show results
              contentDiv.innerHTML = response;
              resultDiv.style.display = 'block';
-
-             // Transform the UI after analysis
-             transformToResultsView();
 
              console.log('✅ Analysis completed successfully');
 
