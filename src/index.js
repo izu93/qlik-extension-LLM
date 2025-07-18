@@ -1018,18 +1018,18 @@ export default function supernova() {
 
         // Clear and setup the exact UI design
         element.innerHTML = `
-          <div style="
+          <div id="main-container" style="
             padding: 20px 20px; 
             font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-            background: #ffffff;
+            background: #f8f9fa;
             min-height: 400px;
             display: flex;
             flex-direction: column;
             align-items: center;
           ">
             
-            <!-- Header -->
-            <div style="text-align: center; margin-bottom: 40px;">
+                        <!-- Header - Full Size -->
+            <div id="full-header" style="text-align: center; margin-bottom: 30px; transition: all 0.5s ease;">
               <h1 style="
                 color: #595959; 
                 font-size: 22px; 
@@ -1044,13 +1044,40 @@ export default function supernova() {
               ">Follow these steps to get started with AI-powered data analysis</p>
             </div>
 
+            <!-- Analysis Button - Shows above steps when all are completed -->
+            ${isConnectionConfigured && hasDimensionsOrMeasures && arePromptsConfigured ? `
+              <div id="button-container" style="
+                width: 100%; 
+                max-width: 500px; 
+                margin-bottom: 30px;
+                text-align: center;
+                transition: all 0.5s ease;
+              ">
+                <button id="analyze-btn" style="
+                  background: #1890ff;
+                  color: white;
+                  border: none;
+                  border-radius: 4px;
+                  padding: 8px 16px;
+                  font-size: 14px;
+                  font-weight: 500;
+                  cursor: pointer;
+                  transition: all 0.3s ease;
+                  min-width: 140px;
+                " onmouseover="this.style.background='#0c7cd5'" onmouseout="this.style.background='#1890ff'">
+                  Generate Analysis
+                </button>
+              </div>
+            ` : ''}
+
             <!-- Steps Container -->
-            <div style="
+            <div id="steps-container" style="
               width: 100%; 
               max-width: 500px; 
               display: flex; 
               flex-direction: column; 
               gap: 16px;
+              transition: all 0.5s ease;
             ">
               
               <!-- Step 1: Configure Claude Connection -->
@@ -1232,46 +1259,129 @@ export default function supernova() {
 
             </div>
 
-            <!-- Analysis Button - Shows when all steps completed -->
-            ${isConnectionConfigured && hasDimensionsOrMeasures && arePromptsConfigured ? `
-              <div style="
-                width: 100%; 
-                max-width: 500px; 
-                margin-top: 30px;
-                text-align: center;
+            <!-- Analysis Results - With integrated timeline header -->
+            <div id="analysis-result" style="
+              margin-top: 0;
+              padding: 0;
+              background: #f8f9fa;
+              border: 1px solid #e9ecef;
+              border-radius: 6px;
+              text-align: left;
+              display: none;
+              width: 100%;
+              max-width: 100%;
+              max-height: 350px;
+              overflow: hidden;
+            ">
+              <!-- Timeline Header inside results box -->
+              <div id="timeline-header" style="
+                display: none;
+                padding: 12px 20px;
+                background: #ffffff;
+                border-bottom: 1px solid #e9ecef;
+                transition: all 0.5s ease;
+                opacity: 0;
               ">
-                <button id="analyze-btn" style="
-                  background: #1890ff;
-                  color: white;
-                  border: none;
-                  border-radius: 6px;
-                  padding: 12px 24px;
-                  font-size: 16px;
-                  font-weight: 600;
-                  cursor: pointer;
-                  transition: all 0.3s ease;
-                  min-width: 200px;
-                " onmouseover="this.style.background='#0c7cd5'" onmouseout="this.style.background='#1890ff'">
-                  🚀 Generate Analysis
-                </button>
-                
-                <div id="analysis-result" style="
-                  margin-top: 20px;
-                  padding: 20px;
-                  background: #f8f9fa;
-                  border: 1px solid #e9ecef;
-                  border-radius: 6px;
-                  text-align: left;
-                  display: none;
+                <div style="
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  gap: 20px;
                 ">
-                  <h4 style="margin: 0 0 10px 0; color: #333;">AI Analysis Results:</h4>
-                  <div id="analysis-content" style="color: #666; line-height: 1.5;"></div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="
+                      width: 20px; height: 20px; border-radius: 50%; background: #52c41a; color: white; 
+                      display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold;
+                    ">✓</div>
+                    <span style="font-size: 12px; color: #595959;">Connection</span>
+                  </div>
+                  <div style="width: 30px; height: 2px; background: #52c41a;"></div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="
+                      width: 20px; height: 20px; border-radius: 50%; background: #52c41a; color: white; 
+                      display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold;
+                    ">✓</div>
+                    <span style="font-size: 12px; color: #595959;">Data</span>
+                  </div>
+                  <div style="width: 30px; height: 2px; background: #52c41a;"></div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="
+                      width: 20px; height: 20px; border-radius: 50%; background: #52c41a; color: white; 
+                      display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold;
+                    ">✓</div>
+                    <span style="font-size: 12px; color: #595959;">Validation</span>
+                  </div>
+                  <div style="width: 30px; height: 2px; background: #52c41a;"></div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="
+                      width: 20px; height: 20px; border-radius: 50%; background: #52c41a; color: white; 
+                      display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold;
+                    ">✓</div>
+                    <span style="font-size: 12px; color: #595959;">Prompts</span>
+                  </div>
                 </div>
               </div>
-            ` : ''}
+              
+              <!-- Content area with scroll -->
+              <div style="
+                padding: 20px;
+                max-height: 280px;
+                overflow-y: auto;
+              ">
+                <h4 style="margin: 0 0 15px 0; color: #333; font-size: 16px; font-weight: 600;">AI Analysis Results:</h4>
+                <div id="analysis-content" style="color: #555; line-height: 1.6; font-size: 14px;"></div>
+              </div>
+            </div>
 
           </div>
         `;
+
+        // Transform UI to results-focused view
+        const transformToResultsView = () => {
+          console.log('🔄 Transforming UI to results view...');
+          
+          // Hide full header, steps, and button with animation
+          const fullHeader = document.getElementById('full-header');
+          const stepsContainer = document.getElementById('steps-container');
+          const timelineHeader = document.getElementById('timeline-header');
+          const buttonContainer = document.getElementById('button-container');
+          const mainContainer = document.getElementById('main-container');
+          
+          if (fullHeader && stepsContainer) {
+            // Fade out full UI and button
+            fullHeader.style.opacity = '0';
+            fullHeader.style.transform = 'translateY(-20px)';
+            stepsContainer.style.opacity = '0';
+            stepsContainer.style.transform = 'translateY(-20px)';
+            
+            if (buttonContainer) {
+              buttonContainer.style.opacity = '0';
+              buttonContainer.style.transform = 'translateY(-20px)';
+            }
+            
+            setTimeout(() => {
+              // Hide full UI and button
+              fullHeader.style.display = 'none';
+              stepsContainer.style.display = 'none';
+              if (buttonContainer) {
+                buttonContainer.style.display = 'none';
+              }
+              
+              // Remove grey background for results view
+              if (mainContainer) {
+                mainContainer.style.background = 'transparent';
+              }
+              
+              // Show timeline header inside the results box
+              if (timelineHeader) {
+                timelineHeader.style.display = 'block';
+                setTimeout(() => {
+                  timelineHeader.style.opacity = '1';
+                }, 100);
+              }
+            }, 300);
+          }
+        };
 
         // Add analyze button click handler
         const analyzeBtn = document.getElementById('analyze-btn');
@@ -1398,12 +1508,12 @@ export default function supernova() {
             const resultDiv = document.getElementById('analysis-result');
             const contentDiv = document.getElementById('analysis-content');
 
-            // Show loading state
-            analyzeBtn.disabled = true;
-            analyzeBtn.textContent = '🤖 Analyzing...';
-            analyzeBtn.style.background = '#f5f5f5';
-            analyzeBtn.style.color = '#999';
-            analyzeBtn.style.cursor = 'not-allowed';
+                         // Show loading state
+             analyzeBtn.disabled = true;
+             analyzeBtn.textContent = 'Analyzing...';
+             analyzeBtn.style.background = '#f5f5f5';
+             analyzeBtn.style.color = '#999';
+             analyzeBtn.style.cursor = 'not-allowed';
 
             // Get current data from layout
             const dataRows = layout?.qHyperCube?.qDataPages?.[0]?.qMatrix?.length || 0;
@@ -1454,11 +1564,14 @@ export default function supernova() {
             // Call Claude using Nebula.js model API
             const response = await callClaudeAPI(systemPrompt, userPrompt, connectionName, temperature);
             
-            // Show results
-            contentDiv.innerHTML = response;
-            resultDiv.style.display = 'block';
+                         // Show results
+             contentDiv.innerHTML = response;
+             resultDiv.style.display = 'block';
 
-            console.log('✅ Analysis completed successfully');
+             // Transform the UI after analysis
+             transformToResultsView();
+
+             console.log('✅ Analysis completed successfully');
 
           } catch (error) {
             console.error('❌ Error generating analysis:', error);
@@ -1473,15 +1586,20 @@ export default function supernova() {
               </div>
             `;
             resultDiv.style.display = 'block';
-          } finally {
-            // Reset button state
-            const analyzeBtn = document.getElementById('analyze-btn');
-            analyzeBtn.disabled = false;
-            analyzeBtn.textContent = '🚀 Generate Analysis';
-            analyzeBtn.style.background = '#1890ff';
-            analyzeBtn.style.color = 'white';
-            analyzeBtn.style.cursor = 'pointer';
-          }
+                     } finally {
+             // Reset button state only if analysis failed (button will be hidden on success)
+             const analyzeBtn = document.getElementById('analyze-btn');
+             const resultDiv = document.getElementById('analysis-result');
+             
+             if (!resultDiv || resultDiv.style.display === 'none') {
+               // Only reset if analysis failed
+               analyzeBtn.disabled = false;
+               analyzeBtn.textContent = 'Generate Analysis';
+               analyzeBtn.style.background = '#1890ff';
+               analyzeBtn.style.color = 'white';
+               analyzeBtn.style.cursor = 'pointer';
+             }
+           }
         };
 
                 // FIXED: Robust expression building with proper escaping
