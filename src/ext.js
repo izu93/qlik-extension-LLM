@@ -218,6 +218,7 @@
                 }
               },
             },
+
             systemPromptDescription: {
               component: "text",
               label: "System Prompt: An instruction that defines the model's role, behavior, or response style within a given interaction.",

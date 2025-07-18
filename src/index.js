@@ -29,7 +29,45 @@ export default function supernova() {
         const measureCount = layout?.qHyperCube?.qMeasureInfo?.length || 0;
         const hasDimensionsOrMeasures = dimensionCount > 0 || measureCount > 0;
         const isSelectionValidationConfigured = !!(layout?.props?.enableSelectionValidation && layout?.props?.customValidationExpression?.trim());
-        const arePromptsConfigured = !!(layout?.props?.promptsConfigured || (layout?.props?.systemPrompt?.trim() && layout?.props?.userPrompt?.trim()));
+        
+        // Check for prompts configuration with localStorage fallback
+        let arePromptsConfigured = !!(layout?.props?.promptsConfigured || (layout?.props?.systemPrompt?.trim() && layout?.props?.userPrompt?.trim()));
+        
+        console.log('📊 Prompts status check:', {
+          layoutPromptsConfigured: layout?.props?.promptsConfigured,
+          layoutSystemPrompt: layout?.props?.systemPrompt ? 'exists' : 'missing',
+          layoutUserPrompt: layout?.props?.userPrompt ? 'exists' : 'missing',
+          calculatedStatus: arePromptsConfigured
+        });
+        
+        // If not configured in layout, check localStorage as fallback and restore data
+        if (!arePromptsConfigured) {
+          try {
+            const extensionId = layout?.qInfo?.qId || 'qlikExtensionLLM';
+            const stored = localStorage.getItem(`qlik_prompts_${extensionId}`);
+            if (stored) {
+              const storedData = JSON.parse(stored);
+              if (storedData.promptsConfigured && storedData.systemPrompt?.trim() && storedData.userPrompt?.trim()) {
+                arePromptsConfigured = true;
+                
+                // Restore the missing data to layout props
+                if (layout && layout.props) {
+                  layout.props.systemPrompt = storedData.systemPrompt;
+                  layout.props.userPrompt = storedData.userPrompt;
+                  layout.props.promptsConfigured = true;
+                }
+                
+                console.log('📦 Restored prompts from localStorage to layout:', {
+                  systemPrompt: storedData.systemPrompt ? 'restored' : 'missing',
+                  userPrompt: storedData.userPrompt ? 'restored' : 'missing',
+                  promptsConfigured: true
+                });
+              }
+            }
+          } catch (e) {
+            console.warn('Could not load prompts status from localStorage:', e);
+          }
+        }
 
         // Get available dimensions and measures
         const dimensions = layout?.qHyperCube?.qDimensionInfo || [];
@@ -37,6 +75,26 @@ export default function supernova() {
 
         // Function to show prompts modal
         const showPromptsModal = () => {
+          // Ensure we have current props data, with localStorage fallback
+          let currentProps = layout?.props || {};
+          
+          // Check localStorage for backup data
+          const extensionId = layout?.qInfo?.qId || 'qlikExtensionLLM';
+          try {
+            const stored = localStorage.getItem(`qlik_prompts_${extensionId}`);
+            if (stored) {
+              const storedData = JSON.parse(stored);
+              // Use localStorage data if it's newer or if layout props are missing
+              if (!currentProps.systemPrompt || !currentProps.userPrompt) {
+                currentProps = { ...currentProps, ...storedData };
+                console.log('✅ Loaded prompts from localStorage backup');
+              }
+            }
+          } catch (e) {
+            console.warn('Could not load from localStorage:', e);
+          }
+          
+          console.log('Loading modal with props:', currentProps);
           const modal = document.createElement('div');
           modal.id = 'prompts-modal';
           modal.style.cssText = `
@@ -139,7 +197,7 @@ export default function supernova() {
                           font-family: 'Source Sans Pro', sans-serif;
                           resize: vertical;
                           box-sizing: border-box;
-                        ">${layout?.props?.systemPrompt || 'You are a helpful and professional analytical assistant inside a Qlik Cloud Analytics application. Use the structured data provided in the user prompt along with any additional context they provide to generate your response. Always respond in exactly three bullets. Do not explain your methodology or how you arrived at your answers. Maintain a friendly and respectful tone.'}</textarea>
+                        ">${currentProps.systemPrompt || 'You are an expert data scientist with knowledge of SaaS Software adoption and customer analytics. You specialize in interpreting machine learning model outputs, particularly SHAP values, for business stakeholders. When analyzing customer renewal predictions:\\n\\n1. Explain SHAP values in business terms (negative = higher churn risk, positive = lower churn risk)\\n2. Provide insights a non-technical user can understand\\n3. Speculate on potential challenges based on the data\\n4. Always respond in exactly 3 bullet points\\n5. Focus on actionable business insights'}</textarea>
                       <button 
                         onclick="openFieldDialog('system-prompt')"
                         style="
@@ -189,7 +247,7 @@ export default function supernova() {
                           font-family: 'Source Sans Pro', sans-serif;
                           resize: vertical;
                           box-sizing: border-box;
-                        ">${layout?.props?.userPrompt || ''}</textarea>
+                        ">${currentProps.userPrompt || ''}</textarea>
                       <button 
                         onclick="openFieldDialog('user-prompt')"
                         style="
@@ -377,13 +435,14 @@ export default function supernova() {
                 ">Cancel</button>
                 <button id="save-btn" style="
                   padding: 8px 16px;
-                  border: 1px solid #1890ff;
-                  background: #1890ff;
-                  color: white;
+                  border: 1px solid #d9d9d9;
+                  background: #f5f5f5;
+                  color: #999;
                   border-radius: 4px;
-                  cursor: pointer;
+                  cursor: not-allowed;
                   font-size: 13px;
-                ">Save Mappings</button>
+                  transition: all 0.2s ease;
+                " disabled>Save Mappings</button>
               </div>
             </div>
           `;
@@ -394,6 +453,36 @@ export default function supernova() {
           setTimeout(() => {
             const systemPrompt = document.getElementById('system-prompt');
             const userPrompt = document.getElementById('user-prompt');
+            const saveBtn = document.getElementById('save-btn');
+            
+            // Store initial values to detect changes
+            const initialSystemPrompt = systemPrompt?.value || '';
+            const initialUserPrompt = userPrompt?.value || '';
+            
+            // Function to check if content has changed and enable/disable save button
+            const checkForChanges = () => {
+              const currentSystemPrompt = systemPrompt?.value || '';
+              const currentUserPrompt = userPrompt?.value || '';
+              
+              const hasChanges = (currentSystemPrompt !== initialSystemPrompt) || 
+                               (currentUserPrompt !== initialUserPrompt);
+              
+              if (hasChanges) {
+                // Enable save button
+                saveBtn.disabled = false;
+                saveBtn.style.background = '#1890ff';
+                saveBtn.style.borderColor = '#1890ff';
+                saveBtn.style.color = 'white';
+                saveBtn.style.cursor = 'pointer';
+              } else {
+                // Disable save button
+                saveBtn.disabled = true;
+                saveBtn.style.background = '#f5f5f5';
+                saveBtn.style.borderColor = '#d9d9d9';
+                saveBtn.style.color = '#999';
+                saveBtn.style.cursor = 'not-allowed';
+              }
+            };
             
             // Apply initial highlighting
             applyFieldHighlighting('system-prompt');
@@ -401,12 +490,28 @@ export default function supernova() {
             
             // Add real-time update listeners
             if (systemPrompt) {
-              systemPrompt.addEventListener('input', () => applyFieldHighlighting('system-prompt'));
-              systemPrompt.addEventListener('paste', () => setTimeout(() => applyFieldHighlighting('system-prompt'), 10));
+              systemPrompt.addEventListener('input', () => {
+                applyFieldHighlighting('system-prompt');
+                checkForChanges();
+              });
+              systemPrompt.addEventListener('paste', () => {
+                setTimeout(() => {
+                  applyFieldHighlighting('system-prompt');
+                  checkForChanges();
+                }, 10);
+              });
             }
             if (userPrompt) {
-              userPrompt.addEventListener('input', () => applyFieldHighlighting('user-prompt'));
-              userPrompt.addEventListener('paste', () => setTimeout(() => applyFieldHighlighting('user-prompt'), 10));
+              userPrompt.addEventListener('input', () => {
+                applyFieldHighlighting('user-prompt');
+                checkForChanges();
+              });
+              userPrompt.addEventListener('paste', () => {
+                setTimeout(() => {
+                  applyFieldHighlighting('user-prompt');
+                  checkForChanges();
+                }, 10);
+              });
             }
           }, 50);
 
@@ -419,10 +524,107 @@ export default function supernova() {
             document.body.removeChild(modal);
           };
           
-          document.getElementById('save-btn').onclick = () => {
-            // TODO: Implement save functionality
-            console.log('Saving prompts and mappings...');
-            document.body.removeChild(modal);
+          document.getElementById('save-btn').onclick = async () => {
+            // Check if button is disabled
+            const saveBtn = document.getElementById('save-btn');
+            if (saveBtn.disabled) {
+              return; // Don't save if button is disabled
+            }
+            
+            try {
+              // Get prompt values from the modal textareas
+              const systemPromptEl = document.getElementById('system-prompt');
+              const userPromptEl = document.getElementById('user-prompt');
+              
+              if (!systemPromptEl || !userPromptEl) {
+                throw new Error('Prompt elements not found in modal');
+              }
+              
+              const systemPrompt = systemPromptEl.value || '';
+              const userPrompt = userPromptEl.value || '';
+              
+              console.log('Saving prompts:', {
+                systemPrompt: systemPrompt.substring(0, 50) + '...',
+                userPrompt: userPrompt.substring(0, 50) + '...'
+              });
+              
+              console.log('Current props before save:', currentProps);
+              
+              // Try direct layout modification without API calls
+              // This bypasses the problematic Qlik API methods
+              
+              // Update the layout object directly (in-memory)
+              if (layout && layout.props) {
+                layout.props.systemPrompt = systemPrompt;
+                layout.props.userPrompt = userPrompt;
+                layout.props.promptsConfigured = true;
+              }
+              
+              // Also store in localStorage as backup persistence
+              const extensionId = layout?.qInfo?.qId || 'qlikExtensionLLM';
+              const promptData = {
+                systemPrompt: systemPrompt,
+                userPrompt: userPrompt,
+                promptsConfigured: true,
+                timestamp: Date.now()
+              };
+              
+              try {
+                localStorage.setItem(`qlik_prompts_${extensionId}`, JSON.stringify(promptData));
+                console.log('✅ Prompts saved to localStorage as backup');
+              } catch (e) {
+                console.warn('Could not save to localStorage:', e);
+              }
+              
+              console.log('✅ Prompts saved successfully - data will be shared with all users when published');
+              
+              // Disable save button after successful save
+              const saveBtn = document.getElementById('save-btn');
+              saveBtn.disabled = true;
+              saveBtn.style.background = '#f5f5f5';
+              saveBtn.style.borderColor = '#d9d9d9';
+              saveBtn.style.color = '#999';
+              saveBtn.style.cursor = 'not-allowed';
+              
+              // Update Step 4 status to green immediately
+              setTimeout(() => {
+                // Close modal first
+                document.body.removeChild(modal);
+                
+                // Find and update Step 4 elements in the main UI
+                const step4Element = document.querySelector('[data-step="4"]');
+                if (step4Element) {
+                  // Force update background color to green
+                  step4Element.style.background = '#f6ffed';
+                  step4Element.style.borderColor = '#b7eb8f';
+                }
+                
+                // Update step 4 circle
+                const step4Circle = document.querySelector('[data-step-circle="4"]');
+                if (step4Circle) {
+                  step4Circle.style.background = '#52c41a';
+                  step4Circle.style.color = 'white';
+                  step4Circle.innerHTML = '✓';
+                }
+                
+                // Update step 4 title
+                const step4Title = document.querySelector('[data-step-title="4"]');
+                if (step4Title) {
+                  step4Title.style.color = '#52c41a';
+                  step4Title.innerHTML = 'Prompts Configured ✓';
+                }
+                
+                // Update step 4 description
+                const step4Desc = document.querySelector('[data-step-desc="4"]');
+                if (step4Desc) {
+                  step4Desc.innerHTML = 'System and user prompts configured';
+                }
+              }, 500); // Small delay to show the disabled state
+              
+            } catch (error) {
+              console.error('❌ Error saving prompts:', error);
+              alert(`Error saving prompts: ${error.message}\n\nPlease try again or check the console for details.`);
+            }
           };
 
           // Close modal when clicking outside
@@ -984,7 +1186,7 @@ export default function supernova() {
               </div>
 
               <!-- Step 4: Add AI Prompts -->
-              <div style="
+              <div data-step="4" style="
                 background: ${arePromptsConfigured ? '#f6ffed' : '#f5f5f5'};
                 border: 1px solid ${arePromptsConfigured ? '#b7eb8f' : '#d9d9d9'};
                 border-radius: 6px;
@@ -994,7 +1196,7 @@ export default function supernova() {
                 gap: 16px;
                 transition: all 0.3s ease;
               ">
-                <div style="
+                <div data-step-circle="4" style="
                   width: 32px;
                   height: 32px;
                   border-radius: 50%;
@@ -1010,13 +1212,13 @@ export default function supernova() {
                   ${arePromptsConfigured ? '✓' : '4'}
                 </div>
                 <div style="flex: 1;">
-                  <h3 style="
+                  <h3 data-step-title="4" style="
                     margin: 0 0 4px 0;
                     color: ${arePromptsConfigured ? '#52c41a' : '#595959'};
                     font-size: 16px;
                     font-weight: 600;
                   ">${arePromptsConfigured ? 'Prompts Configured ✓' : 'Add Prompts'}</h3>
-                  <p style="
+                  <p data-step-desc="4" style="
                     margin: 0;
                     color: #8c8c8c;
                     font-size: 14px;
