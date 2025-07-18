@@ -166,6 +166,19 @@
                 return data.props?.enableSelectionValidation || false;
               },
             },
+            clearValidationButton: {
+              component: "button",
+              label: "Clear Validation Expression",
+              action: function(data) {
+                data.props.customValidationExpression = "";
+                return data;
+              },
+              show: function (data) {
+                const hasExpression = data.props?.customValidationExpression?.trim();
+                const isEnabled = data.props?.enableSelectionValidation || false;
+                return isEnabled && hasExpression;
+              },
+            },
             customValidationErrorMessage: {
               type: "string",
               component: "textarea",
