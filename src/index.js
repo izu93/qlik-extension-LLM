@@ -1123,37 +1123,42 @@ export default function supernova() {
         // Clear and setup the exact UI design
         element.innerHTML = `
           <div id="main-container" style="
-            padding: 20px 20px; 
+            padding: clamp(8px, 1vh, 12px) clamp(12px, 1.5vw, 16px); 
             font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
             background: #f8f9fa;
-            min-height: 400px;
+            min-height: clamp(200px, 15vh, 300px);
+            height: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
+            box-sizing: border-box;
           ">
             
-                        <!-- Header - Full Size -->
-            <div id="full-header" style="text-align: center; margin-bottom: 30px; transition: all 0.5s ease;">
+                        <!-- Header - Compact -->
+            <div id="full-header" style="text-align: center; margin-bottom: clamp(8px, 1.5vh, 15px); transition: all 0.5s ease;">
               <h1 style="
                 color: #595959; 
-                font-size: 22px; 
-                font-weight: 800;
-                letter-spacing: -0.5px;
-              ">Welcome to Dynamic LLM Extension</h1>
+                font-size: clamp(14px, 2.5vw, 18px); 
+                font-weight: 700;
+                letter-spacing: -0.3px;
+                margin: 0 0 clamp(2px, 0.5vh, 6px) 0;
+                line-height: 1.1;
+              ">Dynamic LLM Extension</h1>
               <p style="
                 color: #8c8c8c; 
                 margin: 0; 
-                font-size: 16px;
+                font-size: clamp(10px, 1.8vw, 13px);
                 font-weight: 400;
-              ">Follow these steps to get started with AI-powered data analysis</p>
+                line-height: 1.2;
+              ">Follow these steps for AI-powered analysis</p>
             </div>
 
             <!-- Analysis Button - Shows above steps when all are completed -->
             ${isConnectionConfigured && hasDimensionsOrMeasures && arePromptsConfigured ? `
               <div id="button-container" style="
                 width: 100%; 
-                max-width: 500px; 
-                margin-bottom: 30px;
+                max-width: min(400px, 85vw); 
+                margin-bottom: clamp(10px, 1.5vh, 18px);
                 text-align: center;
                 transition: all 0.5s ease;
               ">
@@ -1161,13 +1166,13 @@ export default function supernova() {
                   background: #1890ff;
                   color: white;
                   border: none;
-                  border-radius: 4px;
-                  padding: 8px 16px;
-                  font-size: 14px;
+                  border-radius: 3px;
+                  padding: clamp(6px, 0.8vh, 7px) clamp(12px, 1.8vw, 14px);
+                  font-size: clamp(11px, 1.8vw, 13px);
                   font-weight: 500;
                   cursor: pointer;
                   transition: all 0.3s ease;
-                  min-width: 140px;
+                  min-width: clamp(100px, 18vw, 120px);
                 " onmouseover="this.style.background='#0c7cd5'" onmouseout="this.style.background='#1890ff'">
                   Generate Analysis
                 </button>
@@ -1177,10 +1182,10 @@ export default function supernova() {
             <!-- Steps Container -->
             <div id="steps-container" style="
               width: 100%; 
-              max-width: 500px; 
+              max-width: min(400px, 85vw); 
               display: flex; 
               flex-direction: column; 
-              gap: 16px;
+              gap: clamp(6px, 1vh, 8px);
               transition: all 0.5s ease;
             ">
               
@@ -1188,16 +1193,17 @@ export default function supernova() {
               <div style="
                 background: ${isConnectionConfigured ? '#f6ffed' : '#f5f5f5'};
                 border: 1px solid ${isConnectionConfigured ? '#b7eb8f' : '#d9d9d9'};
-                border-radius: 6px;
-                padding: 10px 10px;
+                border-radius: 4px;
+                padding: clamp(6px, 0.8vh, 8px) clamp(8px, 1.2vw, 10px);
                 display: flex;
                 align-items: center;
-                gap: 16px;
+                gap: clamp(8px, 1.4vw, 10px);
+                min-height: clamp(50px, 8vh, 60px);
                 transition: all 0.3s ease;
               ">
                 <div style="
-                  width: 32px;
-                  height: 32px;
+                  width: clamp(20px, 3vw, 24px);
+                  height: clamp(20px, 3vw, 24px);
                   border-radius: 50%;
                   background: ${isConnectionConfigured ? '#52c41a' : '#595959'};
                   color: white;
@@ -1205,24 +1211,26 @@ export default function supernova() {
                   align-items: center;
                   justify-content: center;
                   font-weight: 600;
-                  font-size: 16px;
+                  font-size: clamp(10px, 1.5vw, 12px);
                   flex-shrink: 0;
                 ">
                   ${isConnectionConfigured ? '✓' : '1'}
                 </div>
                 <div style="flex: 1;">
                   <h3 style="
-                    margin: 0 0 4px 0;
+                    margin: 0 0 clamp(1px, 0.2vh, 2px) 0;
                     color: ${isConnectionConfigured ? '#52c41a' : '#595959'};
-                    font-size: 16px;
+                    font-size: clamp(11px, 1.8vw, 13px);
                     font-weight: 600;
-                  ">${isConnectionConfigured ? 'Connection Configured ✓' : 'Configure Claude Connection'}</h3>
+                    line-height: 1.1;
+                  ">${isConnectionConfigured ? 'Connection Configured ✓' : 'Configure Connection'}</h3>
                   <p style="
                     margin: 0;
                     color: #8c8c8c;
-                    font-size: 14px;
+                    font-size: clamp(9px, 1.4vw, 10px);
                     font-weight: 400;
-                  ">${isConnectionConfigured ? 'Ready to connect to Claude AI' : 'Set connection name in LLM Configuration panel'}</p>
+                    line-height: 1.2;
+                  ">${isConnectionConfigured ? 'Ready to connect to Claude AI' : 'Set connection name in LLM Configuration'}</p>
                 </div>
               </div>
 
@@ -1230,16 +1238,17 @@ export default function supernova() {
               <div style="
                 background: ${hasDimensionsOrMeasures ? '#f6ffed' : '#f5f5f5'};
                 border: 1px solid ${hasDimensionsOrMeasures ? '#b7eb8f' : '#d9d9d9'};
-                border-radius: 6px;
-                padding: 10px 10px;
+                border-radius: 4px;
+                padding: clamp(6px, 0.8vh, 8px) clamp(8px, 1.2vw, 10px);
                 display: flex;
                 align-items: center;
-                gap: 16px;
+                gap: clamp(8px, 1.4vw, 10px);
+                min-height: clamp(50px, 8vh, 60px);
                 transition: all 0.3s ease;
               ">
                 <div style="
-                  width: 32px;
-                  height: 32px;
+                  width: clamp(20px, 3vw, 24px);
+                  height: clamp(20px, 3vw, 24px);
                   border-radius: 50%;
                   background: ${hasDimensionsOrMeasures ? '#52c41a' : '#595959'};
                   color: white;
@@ -1247,23 +1256,25 @@ export default function supernova() {
                   align-items: center;
                   justify-content: center;
                   font-weight: 600;
-                  font-size: 16px;
+                  font-size: clamp(10px, 1.5vw, 12px);
                   flex-shrink: 0;
                 ">
                   ${hasDimensionsOrMeasures ? '✓' : '2'}
                 </div>
                 <div style="flex: 1;">
                   <h3 style="
-                    margin: 0 0 4px 0;
+                    margin: 0 0 clamp(1px, 0.2vh, 2px) 0;
                     color: ${hasDimensionsOrMeasures ? '#52c41a' : '#595959'};
-                    font-size: 16px;
+                    font-size: clamp(11px, 1.8vw, 13px);
                     font-weight: 600;
-                  ">${hasDimensionsOrMeasures ? 'Data Fields Added ✓' : 'Add Dimensions & Measures'}</h3>
+                    line-height: 1.1;
+                  ">${hasDimensionsOrMeasures ? 'Data Fields Added ✓' : 'Add Data Fields'}</h3>
                   <p style="
                     margin: 0;
                     color: #8c8c8c;
-                    font-size: 14px;
+                    font-size: clamp(9px, 1.4vw, 10px);
                     font-weight: 400;
+                    line-height: 1.2;
                   ">${hasDimensionsOrMeasures ? 
                     `${dimensionCount} dimension${dimensionCount !== 1 ? 's' : ''} and ${measureCount} measure${measureCount !== 1 ? 's' : ''} configured` : 
                     'Add data fields in the Data panel'
@@ -1275,16 +1286,17 @@ export default function supernova() {
               <div style="
                 background: ${isSelectionValidationConfigured ? '#f6ffed' : '#f5f5f5'};
                 border: 1px solid ${isSelectionValidationConfigured ? '#b7eb8f' : '#d9d9d9'};
-                border-radius: 6px;
-                padding: 10px 10px;
+                border-radius: 4px;
+                padding: clamp(6px, 0.8vh, 8px) clamp(8px, 1.2vw, 10px);
                 display: flex;
                 align-items: center;
-                gap: 16px;
+                gap: clamp(8px, 1.4vw, 10px);
+                min-height: clamp(50px, 8vh, 60px);
                 transition: all 0.3s ease;
               ">
                 <div style="
-                  width: 32px;
-                  height: 32px;
+                  width: clamp(20px, 3vw, 24px);
+                  height: clamp(20px, 3vw, 24px);
                   border-radius: 50%;
                   background: ${isSelectionValidationConfigured ? '#52c41a' : '#595959'};
                   color: white;
@@ -1292,7 +1304,7 @@ export default function supernova() {
                   align-items: center;
                   justify-content: center;
                   font-weight: 600;
-                  font-size: 16px;
+                  font-size: clamp(10px, 1.5vw, 12px);
                   flex-shrink: 0;
                 ">
                   ${isSelectionValidationConfigured ? '✓' : '3'}
@@ -1320,16 +1332,17 @@ export default function supernova() {
               <div data-step="4" style="
                 background: ${arePromptsConfigured ? '#f6ffed' : '#f5f5f5'};
                 border: 1px solid ${arePromptsConfigured ? '#b7eb8f' : '#d9d9d9'};
-                border-radius: 6px;
-                padding: 10px 10px;
+                border-radius: 4px;
+                padding: clamp(6px, 0.8vh, 8px) clamp(8px, 1.2vw, 10px);
                 display: flex;
                 align-items: center;
-                gap: 16px;
+                gap: clamp(8px, 1.4vw, 10px);
+                min-height: clamp(50px, 8vh, 60px);
                 transition: all 0.3s ease;
               ">
                 <div data-step-circle="4" style="
-                  width: 32px;
-                  height: 32px;
+                  width: clamp(20px, 3vw, 24px);
+                  height: clamp(20px, 3vw, 24px);
                   border-radius: 50%;
                   background: ${arePromptsConfigured ? '#52c41a' : '#595959'};
                   color: white;
@@ -1337,7 +1350,7 @@ export default function supernova() {
                   align-items: center;
                   justify-content: center;
                   font-weight: 600;
-                  font-size: 16px;
+                  font-size: clamp(10px, 1.5vw, 12px);
                   flex-shrink: 0;
                 ">
                   ${arePromptsConfigured ? '✓' : '4'}
