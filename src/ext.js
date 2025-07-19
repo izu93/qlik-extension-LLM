@@ -232,16 +232,7 @@
               },
             },
 
-            systemPromptDescription: {
-              component: "text",
-              label: "System Prompt: An instruction that defines the model's role, behavior, or response style within a given interaction.",
-              style: "font-weight: 500; color: #333; font-size: 13px; margin-top: 15px;",
-            },
-            userPromptDescription: {
-              component: "text", 
-              label: "User Prompt: The input that conveys the user's intent or query, prompting the model to generate a relevant response.",
-              style: "font-weight: 500; color: #333; font-size: 13px; margin-top: 8px;",
-            },
+
           },
         },
 

@@ -145,6 +145,31 @@ export default function supernova() {
                   padding: 4px;
                 ">&times;</button>
               </div>
+              
+              <!-- Instructions -->
+              <div style="
+                padding: 16px 24px 0px 24px;
+                border-bottom: 1px solid #f0f0f0;
+                background: #fafafa;
+              ">
+                <p style="
+                  margin: 0 0 16px 0;
+                  color: #666;
+                  font-size: 13px;
+                  font-style: italic;
+                  line-height: 1.5;
+                ">
+                  <strong>Instructions:</strong> Type your prompts in the text areas below. Click the <span style="
+                    background: #f5f5f5;
+                    border: 1px solid #d9d9d9;
+                    border-radius: 3px;
+                    padding: 2px 6px;
+                    font-family: monospace;
+                    color: #333;
+                    font-style: normal;
+                  ">➕</span> icon to insert available data fields from your extension. Remember to click <strong>Save Mappings</strong> when finished.
+                </p>
+              </div>
 
               <!-- Main Content -->
               <div style="
@@ -284,20 +309,45 @@ export default function supernova() {
                     font-weight: 600;
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
-                  ">🤖 Prompt Assistant</h3>
+                  ">🤖 Prompt Assistant (Coming Soon)</h3>
                   
-                  <!-- Chat Messages -->
-                  <div id="chat-messages" style="
-                    flex: 1;
-                    min-height: 300px;
-                    max-height: 400px;
-                    overflow-y: auto;
-                    border: 1px solid #e8e8e8;
-                    border-radius: 6px;
+                  <!-- Coming Soon Banner -->
+                  <div style="
+                    background: linear-gradient(135deg, #ffd700, #ffb347);
+                    border: 2px solid #ff8c00;
+                    border-radius: 8px;
                     padding: 12px;
-                    background: #fafafa;
-                    margin-bottom: 12px;
+                    margin-bottom: 16px;
+                    text-align: center;
+                    box-shadow: 0 2px 4px rgba(255, 140, 0, 0.2);
                   ">
+                    <div style="
+                      font-size: 16px;
+                      font-weight: bold;
+                      color: #8b4513;
+                      margin-bottom: 4px;
+                    ">Phase 2 Feature</div>
+                    <div style="
+                      font-size: 12px;
+                      color: #8b4513;
+                      line-height: 1.4;
+                    ">This AI-powered prompt assistant will help you craft effective prompts for your Qlik data analysis. Stay tuned for the next release!</div>
+                  </div>
+                  
+                  <!-- Chat Messages with disabled overlay -->
+                  <div style="position: relative;">
+                    <div id="chat-messages" style="
+                      flex: 1;
+                      min-height: 300px;
+                      max-height: 400px;
+                      overflow-y: auto;
+                      border: 1px solid #e8e8e8;
+                      border-radius: 6px;
+                      padding: 12px;
+                      background: #fafafa;
+                      margin-bottom: 12px;
+                      opacity: 0.6;
+                    ">
                     <!-- Welcome Message -->
                     <div style="
                       background: #e6f7ff;
@@ -313,16 +363,45 @@ export default function supernova() {
                       <br/>• User prompt examples  
                       <br/>• Best practices for AI analysis
                     </div>
+                    
+                    <!-- Disabled Overlay -->
+                    <div style="
+                      position: absolute;
+                      top: 0;
+                      left: 0;
+                      right: 0;
+                      bottom: 0;
+                      background: rgba(255, 255, 255, 0.8);
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      border-radius: 6px;
+                      cursor: not-allowed;
+                    ">
+                      <div style="
+                        background: #fff;
+                        border: 2px solid #ff8c00;
+                        border-radius: 8px;
+                        padding: 12px 16px;
+                        text-align: center;
+                        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                      ">
+                        <div style="font-size: 14px; font-weight: bold; color: #ff8c00; margin-bottom: 4px;">Feature under development</div>
+                      </div>
+                    </div>
+                  </div>
                   </div>
                   
-                  <!-- Chat Input -->
+                  <!-- Chat Input - Disabled -->
                   <div style="
                     position: relative;
                     display: flex;
+                    opacity: 0.5;
                   ">
                     <textarea 
                       id="chat-input"
-                      placeholder="Ask for prompt suggestions..."
+                      placeholder="Coming in Phase 2..."
+                      disabled
                       style="
                         width: 100%;
                         height: 60px;
@@ -334,10 +413,13 @@ export default function supernova() {
                         resize: none;
                         box-sizing: border-box;
                         outline: none;
+                        background: #f5f5f5;
+                        cursor: not-allowed;
                       "
                     ></textarea>
                     <button 
                       id="send-chat"
+                      disabled
                       style="
                         position: absolute;
                         right: 8px;
@@ -345,27 +427,25 @@ export default function supernova() {
                         width: 28px;
                         height: 28px;
                         border: 1px solid #d9d9d9;
-                        background: white;
-                        color: #666;
+                        background: #f5f5f5;
+                        color: #ccc;
                         border-radius: 6px;
-                        cursor: pointer;
+                        cursor: not-allowed;
                         display: flex;
                         align-items: center;
                         justify-content: center;
                         font-size: 14px;
-                        transition: background-color 0.2s ease;
                       "
-                      onmouseover="this.style.background='#f5f5f5'"
-                      onmouseout="this.style.background='white'"
-                      title="Send message">↗️</button>
+                      title="Coming in Phase 2">✕</button>
                   </div>
                   
-                  <!-- Quick Actions -->
+                  <!-- Quick Actions - Disabled -->
                   <div style="
                     margin-top: 12px;
                     display: flex;
                     flex-direction: column;
                     gap: 6px;
+                    opacity: 0.5;
                   ">
                     <div style="
                       font-size: 11px;
