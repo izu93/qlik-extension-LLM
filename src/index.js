@@ -600,21 +600,21 @@ export default function supernova() {
 
           // Function to add Generate Analysis button
           const addGenerateAnalysisButton = () => {
-            // Check if button container already exists
-            if (document.getElementById('button-container')) {
+            // Check if button container already exists for this specific object
+            if (element.querySelector(`#${uniqueButtonContainerId}`)) {
               return; // Button already exists
             }
             
-            // Find the steps container to insert button before it
-            const stepsContainer = document.getElementById('steps-container');
+            // Find the steps container to insert button before it (scoped to this element)
+            const stepsContainer = element.querySelector(`#${uniqueStepsId}`);
             if (!stepsContainer) {
-              console.warn('Steps container not found');
+              console.warn('Steps container not found for object:', objectId);
               return;
             }
             
             // Create button container
             const buttonContainer = document.createElement('div');
-            buttonContainer.id = 'button-container';
+            buttonContainer.id = uniqueButtonContainerId;
             buttonContainer.style.cssText = `
               width: 100%;
               max-width: min(400px, 85vw);
@@ -625,7 +625,7 @@ export default function supernova() {
             
             // Create the button
             buttonContainer.innerHTML = `
-              <button id="analyze-btn" style="
+              <button id="${uniqueAnalyzeBtnId}" style="
                 background: #1890ff;
                 color: white;
                 border: none;
@@ -644,8 +644,8 @@ export default function supernova() {
             // Insert button before steps container
             stepsContainer.parentNode.insertBefore(buttonContainer, stepsContainer);
             
-            // Add click event listener to the button
-            const analyzeBtn = document.getElementById('analyze-btn');
+            // Add click event listener to the button (scoped to this element)
+            const analyzeBtn = element.querySelector(`#${uniqueAnalyzeBtnId}`);
             if (analyzeBtn) {
               analyzeBtn.onclick = generateAnalysis;
             }
@@ -1192,9 +1192,18 @@ export default function supernova() {
 
 
 
+        // Generate unique IDs for this object instance  
+        const objectId = layout?.qInfo?.qId || model?.id || 'unknown';
+        const uniqueMainId = `main-container-${objectId}`;
+        const uniqueFullHeaderId = `full-header-${objectId}`;
+        const uniqueButtonContainerId = `button-container-${objectId}`;
+        const uniqueAnalyzeBtnId = `analyze-btn-${objectId}`;
+        const uniqueStepsId = `steps-container-${objectId}`;
+        const uniqueTimelineHeaderId = `timeline-header-${objectId}`;
+
         // Clear and setup the exact UI design
         element.innerHTML = `
-          <div id="main-container" style="
+          <div id="${uniqueMainId}" style="
             padding: clamp(8px, 1vh, 12px) clamp(12px, 1.5vw, 16px); 
             font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
             background: #f8f9fa;
@@ -1207,7 +1216,7 @@ export default function supernova() {
           ">
             
                         <!-- Header - Compact -->
-            <div id="full-header" style="text-align: center; margin-bottom: clamp(8px, 1.5vh, 15px); transition: all 0.5s ease;">
+            <div id="${uniqueFullHeaderId}" style="text-align: center; margin-bottom: clamp(8px, 1.5vh, 15px); transition: all 0.5s ease;">
               <h1 style="
                 color: #595959; 
                 font-size: clamp(14px, 2.5vw, 18px); 
@@ -1227,14 +1236,14 @@ export default function supernova() {
 
             <!-- Analysis Button - Shows above steps when all are completed -->
             ${isConnectionConfigured && hasDimensionsOrMeasures && arePromptsConfigured ? `
-              <div id="button-container" style="
+              <div id="${uniqueButtonContainerId}" style="
                 width: 100%; 
                 max-width: min(400px, 85vw); 
                 margin-bottom: clamp(10px, 1.5vh, 18px);
                 text-align: center;
                 transition: all 0.5s ease;
               ">
-                <button id="analyze-btn" style="
+                <button id="${uniqueAnalyzeBtnId}" style="
                   background: #1890ff;
                   color: white;
                   border: none;
@@ -1252,7 +1261,7 @@ export default function supernova() {
             ` : ''}
 
             <!-- Steps Container -->
-            <div id="steps-container" style="
+            <div id="${uniqueStepsId}" style="
               width: 100%; 
               max-width: min(400px, 85vw); 
               display: flex; 
@@ -1463,7 +1472,7 @@ export default function supernova() {
               overflow: hidden;
             ">
               <!-- Timeline Header inside results box -->
-              <div id="timeline-header" style="
+              <div id="${uniqueTimelineHeaderId}" style="
                 display: none;
                 padding: 12px 20px;
                 background: #ffffff;
@@ -1529,12 +1538,12 @@ export default function supernova() {
         const transformToResultsView = () => {
           console.log('🔄 Transforming UI to results view...');
           
-          // Hide full header, steps, and button with animation
-          const fullHeader = document.getElementById('full-header');
-          const stepsContainer = document.getElementById('steps-container');
-          const timelineHeader = document.getElementById('timeline-header');
-          const buttonContainer = document.getElementById('button-container');
-          const mainContainer = document.getElementById('main-container');
+          // Hide full header, steps, and button with animation (scoped to this element)
+          const fullHeader = element.querySelector(`#${uniqueFullHeaderId}`);
+          const stepsContainer = element.querySelector(`#${uniqueStepsId}`);
+          const timelineHeader = element.querySelector(`#${uniqueTimelineHeaderId}`);
+          const buttonContainer = element.querySelector(`#${uniqueButtonContainerId}`);
+          const mainContainer = element.querySelector(`#${uniqueMainId}`);
           
           if (fullHeader && stepsContainer) {
             // Fast, smooth fade out - no visible movement
@@ -1577,8 +1586,8 @@ export default function supernova() {
           }
         };
 
-        // Add analyze button click handler
-        const analyzeBtn = document.getElementById('analyze-btn');
+        // Add analyze button click handler (scoped to this element)
+        const analyzeBtn = element.querySelector(`#${uniqueAnalyzeBtnId}`);
         if (analyzeBtn) {
           analyzeBtn.onclick = async () => {
             await generateAnalysis();
@@ -1859,16 +1868,16 @@ export default function supernova() {
               </div>
             `;
             
-            // Add to main container
-            const mainContainer = document.getElementById('main-container');
+            // Add to main container (scoped to this element)
+            const mainContainer = element.querySelector(`#${uniqueMainId}`);
             if (mainContainer) {
               mainContainer.style.position = 'relative';
               mainContainer.appendChild(loadingOverlay);
             }
 
-            const analyzeBtn = document.getElementById('analyze-btn');
-            const resultDiv = document.getElementById('analysis-result');
-            const contentDiv = document.getElementById('analysis-content');
+            const analyzeBtn = element.querySelector(`#${uniqueAnalyzeBtnId}`);
+            const resultDiv = element.querySelector('#analysis-result');
+            const contentDiv = element.querySelector('#analysis-content');
 
                          // Show loading state with spinner
              analyzeBtn.disabled = true;
@@ -1976,15 +1985,15 @@ export default function supernova() {
             `;
             resultDiv.style.display = 'block';
                      } finally {
-             // Remove global loading overlay
-             const loadingOverlay = document.getElementById('global-loading-overlay');
+             // Remove global loading overlay (scoped to this element)
+             const loadingOverlay = element.querySelector('#global-loading-overlay');
              if (loadingOverlay) {
                loadingOverlay.remove();
              }
              
              // Reset button state only if analysis failed (button will be hidden on success)
-             const analyzeBtn = document.getElementById('analyze-btn');
-             const resultDiv = document.getElementById('analysis-result');
+             const analyzeBtn = element.querySelector(`#${uniqueAnalyzeBtnId}`);
+             const resultDiv = element.querySelector('#analysis-result');
              
              if (!resultDiv || resultDiv.style.display === 'none') {
                // Only reset if analysis failed
