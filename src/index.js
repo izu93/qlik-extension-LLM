@@ -43,9 +43,9 @@ export default function supernova() {
         // If not configured in layout, check localStorage as fallback and restore data
         if (!arePromptsConfigured) {
           try {
-            // Use a simpler but more stable identifier for localStorage
-            const objectTitle = layout?.title || 'LLM_Extension';
-            const extensionId = `qlikLLM_${objectTitle}`.replace(/[^a-zA-Z0-9_]/g, '_');
+            // Use object ID for unique localStorage key per object instance
+            const objectId = layout?.qInfo?.qId || model?.id || 'unknown';
+            const extensionId = `qlikLLM_object_${objectId}`;
             const stored = localStorage.getItem(`qlik_prompts_${extensionId}`);
             if (stored) {
               const storedData = JSON.parse(stored);
@@ -81,8 +81,8 @@ export default function supernova() {
           let currentProps = layout?.props || {};
           
           // Check localStorage for backup data
-          const objectTitle = layout?.title || 'LLM_Extension';
-          const extensionId = `qlikLLM_${objectTitle}`.replace(/[^a-zA-Z0-9_]/g, '_');
+          const objectId = layout?.qInfo?.qId || model?.id || 'unknown';
+          const extensionId = `qlikLLM_object_${objectId}`;
           try {
             const stored = localStorage.getItem(`qlik_prompts_${extensionId}`);
             if (stored) {
@@ -697,18 +697,20 @@ export default function supernova() {
                 promptsConfigured: true
               };
               
-              // Use Qlik's model API to persist properties
-              // Only update the props, don't overwrite dimensions/measures
-              await model.setProperties({
-                props: updatedProps
-              });
+              // Update the layout props directly (in-memory) to avoid extension invalidation
+              // This will persist for the session and be restored from localStorage
+              if (layout && layout.props) {
+                layout.props.systemPrompt = systemPrompt;
+                layout.props.userPrompt = userPrompt;
+                layout.props.promptsConfigured = true;
+              }
               
-              console.log('✅ Prompts saved to Qlik object properties');
+              console.log('✅ Prompts saved to layout properties (session)');
               
               // Also store in localStorage as backup persistence  
-              // Use a stable identifier based on object title
-              const objectTitle = layout?.title || 'LLM_Extension';
-              const extensionId = `qlikLLM_${objectTitle}`.replace(/[^a-zA-Z0-9_]/g, '_');
+              // Use object ID for unique localStorage key per object instance
+              const objectId = layout?.qInfo?.qId || model?.id || 'unknown';
+              const extensionId = `qlikLLM_object_${objectId}`;
               const promptData = {
                 systemPrompt: systemPrompt,
                 userPrompt: userPrompt,
@@ -1915,8 +1917,8 @@ export default function supernova() {
              // Fallback to localStorage if not in layout
              if (!systemPrompt || !userPrompt) {
                try {
-                 const objectTitle = layout?.title || 'LLM_Extension';
-                 const extensionId = `qlikLLM_${objectTitle}`.replace(/[^a-zA-Z0-9_]/g, '_');
+                 const objectId = layout?.qInfo?.qId || model?.id || 'unknown';
+                 const extensionId = `qlikLLM_object_${objectId}`;
                  const stored = localStorage.getItem(`qlik_prompts_${extensionId}`);
                  if (stored) {
                    const storedData = JSON.parse(stored);
