@@ -43,7 +43,9 @@ export default function supernova() {
         // If not configured in layout, check localStorage as fallback and restore data
         if (!arePromptsConfigured) {
           try {
-            const extensionId = layout?.qInfo?.qId || 'qlikExtensionLLM';
+            // Use a simpler but more stable identifier for localStorage
+            const objectTitle = layout?.title || 'LLM_Extension';
+            const extensionId = `qlikLLM_${objectTitle}`.replace(/[^a-zA-Z0-9_]/g, '_');
             const stored = localStorage.getItem(`qlik_prompts_${extensionId}`);
             if (stored) {
               const storedData = JSON.parse(stored);
@@ -79,7 +81,8 @@ export default function supernova() {
           let currentProps = layout?.props || {};
           
           // Check localStorage for backup data
-          const extensionId = layout?.qInfo?.qId || 'qlikExtensionLLM';
+          const objectTitle = layout?.title || 'LLM_Extension';
+          const extensionId = `qlikLLM_${objectTitle}`.replace(/[^a-zA-Z0-9_]/g, '_');
           try {
             const stored = localStorage.getItem(`qlik_prompts_${extensionId}`);
             if (stored) {
@@ -595,6 +598,61 @@ export default function supernova() {
             }
           }, 50);
 
+          // Function to add Generate Analysis button
+          const addGenerateAnalysisButton = () => {
+            // Check if button container already exists
+            if (document.getElementById('button-container')) {
+              return; // Button already exists
+            }
+            
+            // Find the steps container to insert button before it
+            const stepsContainer = document.getElementById('steps-container');
+            if (!stepsContainer) {
+              console.warn('Steps container not found');
+              return;
+            }
+            
+            // Create button container
+            const buttonContainer = document.createElement('div');
+            buttonContainer.id = 'button-container';
+            buttonContainer.style.cssText = `
+              width: 100%;
+              max-width: min(400px, 85vw);
+              margin-bottom: clamp(10px, 1.5vh, 18px);
+              text-align: center;
+              transition: all 0.5s ease;
+            `;
+            
+            // Create the button
+            buttonContainer.innerHTML = `
+              <button id="analyze-btn" style="
+                background: #1890ff;
+                color: white;
+                border: none;
+                border-radius: 3px;
+                padding: clamp(6px, 0.8vh, 7px) clamp(12px, 1.8vw, 14px);
+                font-size: clamp(11px, 1.8vw, 13px);
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                min-width: clamp(100px, 18vw, 120px);
+              " onmouseover="this.style.background='#0c7cd5'" onmouseout="this.style.background='#1890ff'">
+                Generate Analysis
+              </button>
+            `;
+            
+            // Insert button before steps container
+            stepsContainer.parentNode.insertBefore(buttonContainer, stepsContainer);
+            
+            // Add click event listener to the button
+            const analyzeBtn = document.getElementById('analyze-btn');
+            if (analyzeBtn) {
+              analyzeBtn.onclick = generateAnalysis;
+            }
+            
+            console.log('✅ Generate Analysis button added');
+          };
+
           // Add event listeners
           document.getElementById('close-modal').onclick = () => {
             document.body.removeChild(modal);
@@ -630,18 +688,27 @@ export default function supernova() {
               
               console.log('Current props before save:', currentProps);
               
-              // Try direct layout modification without API calls
-              // This bypasses the problematic Qlik API methods
+              // Save to Qlik object properties using the model API
+              // This properly persists the data to Qlik's backend
+              const updatedProps = {
+                ...currentProps,
+                systemPrompt: systemPrompt,
+                userPrompt: userPrompt,
+                promptsConfigured: true
+              };
               
-              // Update the layout object directly (in-memory)
-              if (layout && layout.props) {
-                layout.props.systemPrompt = systemPrompt;
-                layout.props.userPrompt = userPrompt;
-                layout.props.promptsConfigured = true;
-              }
+              // Use Qlik's model API to persist properties
+              // Only update the props, don't overwrite dimensions/measures
+              await model.setProperties({
+                props: updatedProps
+              });
               
-              // Also store in localStorage as backup persistence
-              const extensionId = layout?.qInfo?.qId || 'qlikExtensionLLM';
+              console.log('✅ Prompts saved to Qlik object properties');
+              
+              // Also store in localStorage as backup persistence  
+              // Use a stable identifier based on object title
+              const objectTitle = layout?.title || 'LLM_Extension';
+              const extensionId = `qlikLLM_${objectTitle}`.replace(/[^a-zA-Z0-9_]/g, '_');
               const promptData = {
                 systemPrompt: systemPrompt,
                 userPrompt: userPrompt,
@@ -699,6 +766,9 @@ export default function supernova() {
                 if (step4Desc) {
                   step4Desc.innerHTML = 'System and user prompts configured';
                 }
+                
+                // Add Generate Analysis button since all steps are now complete
+                addGenerateAnalysisButton();
               }, 500); // Small delay to show the disabled state
               
             } catch (error) {
@@ -1845,7 +1915,8 @@ export default function supernova() {
              // Fallback to localStorage if not in layout
              if (!systemPrompt || !userPrompt) {
                try {
-                 const extensionId = layout?.qInfo?.qId || 'qlikExtensionLLM';
+                 const objectTitle = layout?.title || 'LLM_Extension';
+                 const extensionId = `qlikLLM_${objectTitle}`.replace(/[^a-zA-Z0-9_]/g, '_');
                  const stored = localStorage.getItem(`qlik_prompts_${extensionId}`);
                  if (stored) {
                    const storedData = JSON.parse(stored);
