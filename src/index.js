@@ -114,10 +114,10 @@ export default function supernova() {
             <div style="
               background: white;
               border-radius: 8px;
-              width: 90%;
-              max-width: 1200px;
-              height: 80%;
-              max-height: 600px;
+              width: 95%;
+              max-width: 1400px;
+              height: 85%;
+              max-height: 750px;
               display: flex;
               flex-direction: column;
               box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
@@ -707,9 +707,33 @@ export default function supernova() {
             }
           };
 
-          // Close modal when clicking outside
+          // Close modal when clicking outside (but not during drag operations)
+          let isDragging = false;
+          
+          // Track drag operations on textareas
+          const textareas = modal.querySelectorAll('textarea');
+          textareas.forEach(textarea => {
+            textarea.addEventListener('mousedown', (e) => {
+              // Detect if this is a resize drag (near the bottom-right corner)
+              const rect = textarea.getBoundingClientRect();
+              const x = e.clientX - rect.left;
+              const y = e.clientY - rect.top;
+              const nearRightEdge = x > rect.width - 20;
+              const nearBottomEdge = y > rect.height - 20;
+              
+              if (nearRightEdge || nearBottomEdge) {
+                isDragging = true;
+              }
+            });
+          });
+          
+          // Reset drag flag on mouseup anywhere
+          document.addEventListener('mouseup', () => {
+            isDragging = false;
+          });
+          
           modal.onclick = (e) => {
-            if (e.target === modal) {
+            if (e.target === modal && !isDragging) {
               document.body.removeChild(modal);
             }
           };
