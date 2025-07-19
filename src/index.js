@@ -1721,6 +1721,66 @@ export default function supernova() {
         // Generate Analysis Function
         const generateAnalysis = async () => {
           try {
+            // Create global loading overlay for entire extension
+            const loadingOverlay = document.createElement('div');
+            loadingOverlay.id = 'global-loading-overlay';
+            loadingOverlay.style.cssText = `
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              background: rgba(248, 249, 250, 0.95);
+              z-index: 9999;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              backdrop-filter: blur(2px);
+            `;
+            
+            loadingOverlay.innerHTML = `
+              <div style="
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 16px;
+                padding: 32px;
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+                border: 1px solid #e8e8e8;
+              ">
+                <div style="
+                  width: 40px;
+                  height: 40px;
+                  border: 4px solid #f3f3f3;
+                  border-radius: 50%;
+                  border-top: 4px solid #1890ff;
+                  animation: spin 1s linear infinite;
+                "></div>
+                <div style="
+                  font-size: 16px;
+                  font-weight: 600;
+                  color: #333;
+                  margin-bottom: 4px;
+                ">🤖 AI Analysis in Progress</div>
+                <div style="
+                  font-size: 14px;
+                  color: #666;
+                  text-align: center;
+                  line-height: 1.4;
+                ">Processing your data and generating insights...<br/>This may take a few moments.</div>
+              </div>
+            `;
+            
+            // Add to main container
+            const mainContainer = document.getElementById('main-container');
+            if (mainContainer) {
+              mainContainer.style.position = 'relative';
+              mainContainer.appendChild(loadingOverlay);
+            }
+
             const analyzeBtn = document.getElementById('analyze-btn');
             const resultDiv = document.getElementById('analysis-result');
             const contentDiv = document.getElementById('analysis-content');
@@ -1830,6 +1890,12 @@ export default function supernova() {
             `;
             resultDiv.style.display = 'block';
                      } finally {
+             // Remove global loading overlay
+             const loadingOverlay = document.getElementById('global-loading-overlay');
+             if (loadingOverlay) {
+               loadingOverlay.remove();
+             }
+             
              // Reset button state only if analysis failed (button will be hidden on success)
              const analyzeBtn = document.getElementById('analyze-btn');
              const resultDiv = document.getElementById('analysis-result');
