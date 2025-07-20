@@ -29,10 +29,10 @@ export default {
       topP: 1, // Nucleus sampling parameter
       maxTokens: 1000, // Maximum response length
       
-      // Selection validation properties
-      enableSelectionValidation: false, // Enable custom selection validation
-      customValidationExpression: "", // Custom validation expression
-      customValidationErrorMessage: "Please make the required selections to proceed with AI analysis", // Error message
+          // Selection validation properties
+    enableSelectionValidation: false, // Enable custom selection validation
+    customValidationExpression: "", // Custom validation expression
+    customValidationErrorMessage: "Please make the required selections to proceed with AI analysis.", // Error message
       
       // Prompts & Field Mapping properties
       promptsConfigured: false, // Track if prompts have been configured

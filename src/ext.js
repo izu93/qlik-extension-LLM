@@ -145,27 +145,27 @@
           },
         },
   
-        // Selection Validation section
-        selectionValidation: {
-          type: "items",
-          label: "Selection Validation",
-          items: {
-            enableSelectionValidation: {
-              type: "boolean",
-              label: "Enable Custom Selection Validation",
-              ref: "props.enableSelectionValidation",
-              defaultValue: false,
+              // Selection Validation section
+      selectionValidation: {
+        type: "items",
+        label: "Selection Validation",
+        items: {
+          enableSelectionValidation: {
+            type: "boolean",
+            label: "Enable Selection Validation",
+            ref: "props.enableSelectionValidation",
+            defaultValue: false,
+          },
+                      customValidationExpression: {
+            type: "string",
+            component: "expression",
+            label: "Selection Validation Expression",
+            ref: "props.customValidationExpression",
+            defaultValue: "",
+            show: function (data) {
+              return data.props?.enableSelectionValidation || false;
             },
-            customValidationExpression: {
-              type: "string",
-              component: "expression",
-              label: "Custom Validation Expression",
-              ref: "props.customValidationExpression",
-              defaultValue: "",
-              show: function (data) {
-                return data.props?.enableSelectionValidation || false;
-              },
-            },
+          },
             clearValidationButton: {
               component: "button",
               label: "Clear Validation Expression",
@@ -198,14 +198,14 @@
                 return isEnabled && hasExpression;
               },
             },
-            expressionExamples: {
-              component: "text",
-              label: "Expression Examples:\n• Single selection: GetSelectedCount(automl_feature)=1\n• Multiple fields: GetSelectedCount(Customer)=1 and GetSelectedCount(Invoice)=1",
-              style: "font-style: italic; color: #666; font-size: 12px; white-space: pre-line;",
-              show: function (data) {
-                return data.props?.enableSelectionValidation || false;
-              },
+                      expressionExamples: {
+            component: "text",
+            label: "Examples:\nGetSelectedCount([FieldName])=1\nGetSelectedCount([Customer])=1 and GetSelectedCount([Date])=1",
+            style: "font-style: italic; color: #666; font-size: 12px; white-space: pre-line;",
+            show: function (data) {
+              return data.props?.enableSelectionValidation || false;
             },
+          },
           },
         },
 
