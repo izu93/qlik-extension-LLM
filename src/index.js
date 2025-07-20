@@ -9,6 +9,12 @@ import objectProperties from "./object-properties";
 import extensionDefinition from "./ext";
 import dataConfiguration from "./data";
 
+// Global validation state to persist across component re-renders
+const globalValidationState = {
+  status: 'not_configured', // 'not_configured', 'configured_no_selections', 'configured_with_selections'
+  message: ''
+};
+
 export default function supernova() {
   return {
     qae: {
@@ -30,6 +36,22 @@ export default function supernova() {
         const hasDimensionsOrMeasures = dimensionCount > 0 || measureCount > 0;
         const isSelectionValidationConfigured = !!(layout?.props?.enableSelectionValidation && layout?.props?.customValidationExpression?.trim());
         
+        // Get reference to validation state
+        const validationState = globalValidationState;
+        
+        // Only update initial state if validation configuration changed
+        if (layout?.props?.enableSelectionValidation && layout?.props?.customValidationExpression?.trim()) {
+          // Only reset to configured_no_selections if we're currently not_configured
+          if (validationState.status === 'not_configured') {
+            validationState.status = 'configured_no_selections';
+            validationState.message = 'Please make a selection to proceed';
+          }
+        } else {
+          // Reset to not_configured only if validation is disabled
+          validationState.status = 'not_configured';
+          validationState.message = 'Enable validation in Selection Validation panel';
+        }
+        
         // Check for prompts configuration with localStorage fallback
         let arePromptsConfigured = !!(layout?.props?.promptsConfigured || (layout?.props?.systemPrompt?.trim() && layout?.props?.userPrompt?.trim()));
         
@@ -39,6 +61,264 @@ export default function supernova() {
           layoutUserPrompt: layout?.props?.userPrompt ? 'exists' : 'missing',
           calculatedStatus: arePromptsConfigured
         });
+
+        // Generate unique IDs for this object instance  
+        const objectId = layout?.qInfo?.qId || model?.id || 'unknown';
+        const uniqueMainId = `main-container-${objectId}`;
+        const uniqueFullHeaderId = `full-header-${objectId}`;
+        const uniqueButtonContainerId = `button-container-${objectId}`;
+        const uniqueAnalyzeBtnId = `analyze-btn-${objectId}`;
+        const uniqueStepsId = `steps-container-${objectId}`;
+        const uniqueTimelineHeaderId = `timeline-header-${objectId}`;
+
+        // Function to check if all steps are completed
+        const checkAllStepsCompleted = () => {
+          // Step 1: Connection configured
+          const step1Complete = isConnectionConfigured;
+          
+          // Step 2: Data fields added (5 dimensions + 0 measures)
+          const step2Complete = hasDimensionsOrMeasures;
+          
+          // Step 3: Selection validation - must be enabled AND have valid selection
+          const step3Complete = layout?.props?.enableSelectionValidation && 
+                                layout?.props?.customValidationExpression?.trim() && 
+                                validationState.status === 'configured_with_selections';
+          
+          // Step 4: Prompts configured
+          const step4Complete = arePromptsConfigured;
+          
+          return step1Complete && step2Complete && step3Complete && step4Complete;
+        };
+
+        // Function to add Generate Analysis button
+        const addGenerateAnalysisButton = () => {
+          // Check if button container already exists for this specific object
+          if (element.querySelector(`#${uniqueButtonContainerId}`)) {
+            return; // Button already exists
+          }
+          
+          // Find the steps container to insert button before it (scoped to this element)
+          const stepsContainer = element.querySelector(`#${uniqueStepsId}`);
+          if (!stepsContainer) {
+            console.warn('Steps container not found for object:', objectId);
+            return;
+          }
+          
+          // Create button container
+          const buttonContainer = document.createElement('div');
+          buttonContainer.id = uniqueButtonContainerId;
+          buttonContainer.style.cssText = `
+            width: 100%;
+            max-width: min(400px, 85vw);
+            margin-bottom: clamp(10px, 1.5vh, 18px);
+            text-align: center;
+            transition: all 0.5s ease;
+          `;
+          
+          // Create the button
+          buttonContainer.innerHTML = `
+            <button id="${uniqueAnalyzeBtnId}" style="
+              background: #1890ff;
+              color: white;
+              border: none;
+              border-radius: 3px;
+              padding: clamp(6px, 0.8vh, 7px) clamp(12px, 1.8vw, 14px);
+              font-size: clamp(11px, 1.8vw, 13px);
+              font-weight: 500;
+              cursor: pointer;
+              transition: all 0.3s ease;
+              min-width: clamp(100px, 18vw, 120px);
+            " onmouseover="this.style.background='#0c7cd5'" onmouseout="this.style.background='#1890ff'">
+              Generate Analysis
+            </button>
+          `;
+          
+          // Insert button before steps container
+          stepsContainer.parentNode.insertBefore(buttonContainer, stepsContainer);
+          
+          // Add click event listener to the button (scoped to this element)
+          const analyzeBtn = element.querySelector(`#${uniqueAnalyzeBtnId}`);
+          if (analyzeBtn) {
+            analyzeBtn.onclick = generateAnalysis;
+          }
+        };
+
+        // Function to update Generate Analysis button visibility
+        const updateGenerateAnalysisButtonVisibility = () => {
+          const buttonContainer = element.querySelector(`#${uniqueButtonContainerId}`);
+          const allStepsComplete = checkAllStepsCompleted();
+          
+          if (allStepsComplete) {
+            // Show button if all steps are complete
+            if (!buttonContainer) {
+              addGenerateAnalysisButton();
+            } else {
+              buttonContainer.style.display = 'block';
+            }
+          } else {
+            // Hide button if any step is incomplete
+            if (buttonContainer) {
+              buttonContainer.style.display = 'none';
+            }
+          }
+        };
+
+        // Function to check selection validation in real-time
+        const checkSelectionValidation = async () => {
+          const step3 = element.querySelector('[data-step="3"]') || element.querySelector('.selection-validation-step');
+          
+          // Store previous status to detect changes
+          const previousStatus = validationState.status;
+          
+          // If validation is disabled, reset to grey
+          if (!layout?.props?.enableSelectionValidation) {
+            const newStatus = 'not_configured';
+            const newMessage = 'Enable validation in Selection Validation panel';
+            
+            // Only update if status actually changed
+            if (validationState.status !== newStatus) {
+              validationState.status = newStatus;
+              validationState.message = newMessage;
+              
+              if (step3) {
+                step3.style.background = '#f5f5f5';
+                step3.style.borderColor = '#d9d9d9';
+                
+                const circle = step3.querySelector('div > div');
+                if (circle) {
+                  circle.style.background = '#595959';
+                  circle.textContent = '3';
+                }
+                
+                const title = step3.querySelector('h3');
+                if (title) {
+                  title.style.color = '#595959';
+                  title.textContent = 'Setup Selection Validation';
+                }
+                
+                const message = step3.querySelector('p');
+                if (message) {
+                  message.textContent = validationState.message;
+                }
+              }
+              
+              // Update button visibility when validation is disabled
+              updateGenerateAnalysisButtonVisibility();
+            }
+            return;
+          }
+          
+          if (layout?.props?.enableSelectionValidation && layout?.props?.customValidationExpression?.trim() && app) {
+            try {
+              const expression = layout.props.customValidationExpression;
+              const result = await app.evaluate(expression);
+              
+              // Universal validation - handle any expression result
+              let isValid = false;
+              
+              // Convert result to string for analysis
+              const resultStr = String(result).toLowerCase().trim();
+              
+              // Check for explicit false values
+              const explicitlyFalse = ['false', '0', '', 'null', 'undefined', 'no'];
+              
+              if (result === null || result === undefined) {
+                isValid = false;
+              } else if (typeof result === 'boolean') {
+                isValid = result;
+              } else if (typeof result === 'number') {
+                isValid = !isNaN(result) && result !== 0;
+              } else if (explicitlyFalse.includes(resultStr)) {
+                isValid = false;
+              } else {
+                // For any other value, consider it valid (truthy)
+                isValid = true;
+              }
+              
+              const newStatus = isValid ? 'configured_with_selections' : 'configured_no_selections';
+              const newMessage = isValid ? 'Selection validation passed' : 'Please make a selection to proceed';
+              
+              // Only update if status actually changed
+              if (validationState.status !== newStatus) {
+                validationState.status = newStatus;
+                validationState.message = newMessage;
+                
+                // Update the UI by finding and updating the step
+                const step3 = element.querySelector('[data-step="3"]') || element.querySelector('.selection-validation-step');
+                if (step3) {
+                  if (isValid) {
+                    // Update the step styling to green
+                    step3.style.background = '#f6ffed';
+                    step3.style.borderColor = '#b7eb8f';
+                    
+                    const circle = step3.querySelector('div > div');
+                    if (circle) {
+                      circle.style.background = '#52c41a';
+                      circle.textContent = '✓';
+                    }
+                    
+                    const title = step3.querySelector('h3');
+                    if (title) {
+                      title.style.color = '#52c41a';
+                      title.textContent = 'Selection Validation Active ✓';
+                    }
+                    
+                    const message = step3.querySelector('p');
+                    if (message) {
+                      message.textContent = validationState.message;
+                    }
+                  } else {
+                    // Update the step styling to yellow
+                    step3.style.background = '#fffbe6';
+                    step3.style.borderColor = '#ffd666';
+                    
+                    const circle = step3.querySelector('div > div');
+                    if (circle) {
+                      circle.style.background = '#faad14';
+                      circle.textContent = '!';
+                    }
+                    
+                    const title = step3.querySelector('h3');
+                    if (title) {
+                      title.style.color = '#faad14';
+                      title.textContent = 'Awaiting Selection';
+                    }
+                    
+                    const message = step3.querySelector('p');
+                    if (message) {
+                      message.textContent = validationState.message;
+                    }
+                  }
+                }
+                
+                // Update button visibility when selection validation status changes
+                updateGenerateAnalysisButtonVisibility();
+              }
+            } catch (error) {
+              console.warn('Error evaluating selection validation expression:', error);
+            }
+          }
+        };
+
+        // Clean up any existing validation interval first
+        if (window.selectionValidationInterval) {
+          clearInterval(window.selectionValidationInterval);
+          window.selectionValidationInterval = null;
+        }
+
+        // Set up selection validation monitoring
+        checkSelectionValidation(); // Initial check
+        
+        // Set up monitoring interval with proper cleanup
+        const validationCheckInterval = setInterval(() => {
+          checkSelectionValidation();
+        }, 2000); // Check every 2 seconds (reduced frequency to prevent conflicts)
+        
+        // Store interval for cleanup
+        window.selectionValidationInterval = validationCheckInterval;
+        
+        // Initial button visibility check
+        setTimeout(() => updateGenerateAnalysisButtonVisibility(), 100);
         
         // If not configured in layout, check localStorage as fallback and restore data
         if (!arePromptsConfigured) {
@@ -64,6 +344,9 @@ export default function supernova() {
                   userPrompt: storedData.userPrompt ? 'restored' : 'missing',
                   promptsConfigured: true
                 });
+                
+                // Update button visibility after restoring prompts
+                setTimeout(() => updateGenerateAnalysisButtonVisibility(), 100);
               }
             }
           } catch (e) {
@@ -74,6 +357,560 @@ export default function supernova() {
         // Get available dimensions and measures
         const dimensions = layout?.qHyperCube?.qDimensionInfo || [];
         const measures = layout?.qHyperCube?.qMeasureInfo || [];
+
+        // Transform UI to results-focused view - instant and smooth
+        const transformToResultsView = () => {
+          console.log('🔄 Transforming UI to results view...');
+          
+          // Hide full header, steps, and button with animation (scoped to this element)
+          const fullHeader = element.querySelector(`#${uniqueFullHeaderId}`);
+          const stepsContainer = element.querySelector(`#${uniqueStepsId}`);
+          const timelineHeader = element.querySelector(`#${uniqueTimelineHeaderId}`);
+          const buttonContainer = element.querySelector(`#${uniqueButtonContainerId}`);
+          const mainContainer = element.querySelector(`#${uniqueMainId}`);
+          
+          if (fullHeader && stepsContainer) {
+            // Fast, smooth fade out - no visible movement
+            fullHeader.style.transition = 'opacity 0.15s ease-out';
+            stepsContainer.style.transition = 'opacity 0.15s ease-out';
+            
+            if (buttonContainer) {
+              buttonContainer.style.transition = 'opacity 0.15s ease-out';
+            }
+            
+            // Quick fade out without transform (no jumping)
+            fullHeader.style.opacity = '0';
+            stepsContainer.style.opacity = '0';
+            
+            if (buttonContainer) {
+              buttonContainer.style.opacity = '0';
+            }
+            
+            // Much faster transition - almost instant
+            setTimeout(() => {
+              // Hide elements immediately
+              fullHeader.style.display = 'none';
+              stepsContainer.style.display = 'none';
+              if (buttonContainer) {
+                buttonContainer.style.display = 'none';
+              }
+              
+              // Remove grey background for results view
+              if (mainContainer) {
+                mainContainer.style.background = 'transparent';
+                mainContainer.style.transition = 'background 0.15s ease-out';
+              }
+              
+              // Show timeline header inside the results box immediately
+              if (timelineHeader) {
+                timelineHeader.style.display = 'block';
+                timelineHeader.style.opacity = '1';
+              }
+            }, 150); // Much faster - 150ms instead of 300ms
+          }
+        };
+
+        // Replace field references in prompts with actual data
+        const replaceFieldReferences = async (prompt, layout) => {
+          try {
+            console.log('🔄 Replacing field references in prompt...');
+            
+            let processedPrompt = prompt;
+            const hypercube = layout?.qHyperCube;
+            
+            if (!hypercube || !hypercube.qDataPages?.[0]?.qMatrix?.length) {
+              console.warn('⚠️ No data available for field replacement');
+              return processedPrompt;
+            }
+
+            const matrix = hypercube.qDataPages[0].qMatrix;
+            const dimensionInfo = hypercube.qDimensionInfo || [];
+            const measureInfo = hypercube.qMeasureInfo || [];
+            
+            // Build field data map
+            const fieldData = {};
+            
+                         // Map dimension data using actual field names from your extension
+             dimensionInfo.forEach((dim, index) => {
+               // Use the actual field name from qGroupFieldDefs (the real field name)
+               const actualFieldName = dim.qGroupFieldDefs?.[0] || dim.qFallbackTitle || `Dimension${index}`;
+               const displayName = dim.qFallbackTitle || actualFieldName;
+               
+               const values = matrix.map(row => row[index]?.qText || '').filter(v => v.trim());
+               
+               // Store with both actual field name and display name for flexible matching
+               fieldData[actualFieldName] = values.join(', ');
+               if (displayName !== actualFieldName) {
+                 fieldData[displayName] = values.join(', ');
+               }
+               
+               console.log(`📊 Dimension: [${actualFieldName}] = ${values.length} values`);
+             });
+             
+             // Map measure data using actual field names from your extension
+             measureInfo.forEach((measure, index) => {
+               // Use the actual field name from the measure definition
+               const actualFieldName = measure.qDef?.qDef || measure.qFallbackTitle || `Measure${index}`;
+               const displayName = measure.qFallbackTitle || actualFieldName;
+               
+               const measureIndex = dimensionInfo.length + index;
+               const values = matrix.map(row => row[measureIndex]?.qText || row[measureIndex]?.qNum || '').filter(v => v !== '');
+               
+               // Store with both actual field name and display name for flexible matching
+               fieldData[actualFieldName] = values.join(', ');
+               if (displayName !== actualFieldName) {
+                 fieldData[displayName] = values.join(', ');
+               }
+               
+               console.log(`📊 Measure: [${actualFieldName}] = ${values.length} values`);
+             });
+
+            console.log('📊 Available fields for replacement:', Object.keys(fieldData));
+
+            // Replace field references in the format [FieldName]
+            const fieldPattern = /\[([^\]]+)\]/g;
+            processedPrompt = processedPrompt.replace(fieldPattern, (match, fieldName) => {
+              if (fieldData[fieldName]) {
+                console.log(`🔄 Replaced [${fieldName}] with data: ${fieldData[fieldName].substring(0, 50)}...`);
+                return fieldData[fieldName];
+              } else {
+                console.warn(`⚠️ Field [${fieldName}] not found in data`);
+                return match; // Keep original if not found
+              }
+            });
+
+                         // Special handling for concatenated data patterns like [Field1]|[Field2]|[Field3]
+             const pipePattern = /\[([^\]]+)\]\|(\[([^\]]+)\])/g;
+             let match;
+             while ((match = pipePattern.exec(processedPrompt)) !== null) {
+               console.log('🔍 Found pipe-separated pattern, creating data table...');
+               
+               // Build data table with all rows
+               let dataRows = [];
+               matrix.forEach(row => {
+                 const rowData = [];
+                 
+                 // Add all dimensions
+                 dimensionInfo.forEach((dim, index) => {
+                   rowData.push(row[index]?.qText || '');
+                 });
+                 
+                 // Add all measures
+                 measureInfo.forEach((measure, index) => {
+                   const measureIndex = dimensionInfo.length + index;
+                   rowData.push(row[measureIndex]?.qText || row[measureIndex]?.qNum || '');
+                 });
+                 
+                 dataRows.push(rowData.join('|'));
+               });
+               
+               // Replace the entire pattern with actual data
+               const originalPattern = match[0];
+               processedPrompt = processedPrompt.replace(originalPattern, dataRows.join('\n'));
+               console.log(`🔄 Replaced "${originalPattern}" with ${dataRows.length} data rows`);
+               break; // Handle one pattern at a time
+             }
+
+            console.log('✅ Field replacement completed');
+            return processedPrompt;
+            
+          } catch (error) {
+            console.error('❌ Error in field replacement:', error);
+            return prompt; // Return original prompt if replacement fails
+          }
+        };
+
+        // Simple highlighting function that works on already-rendered content
+        const applySimpleHighlighting = (contentElement, layout) => {
+          if (!contentElement) return;
+          
+          console.log('🎨 Applying simple highlighting...');
+          
+          // Add CSS styles if not already added
+          if (!document.getElementById('highlight-styles')) {
+            const style = document.createElement('style');
+            style.id = 'highlight-styles';
+                                     style.textContent = `
+              .qlik-field { background: #e6f7ff !important; color: #0066cc !important; padding: 1px 3px !important; border-radius: 3px !important; font-weight: 600 !important; }
+              .qlik-value { background: #e6f7ff !important; color: #0066cc !important; padding: 1px 3px !important; border-radius: 3px !important; font-weight: 500 !important; }
+              .number-highlight { background: #f3e8ff !important; color: #7c3aed !important; padding: 1px 3px !important; border-radius: 3px !important; font-weight: 600 !important; }
+              
+              @keyframes pulse {
+                0% { opacity: 1; transform: scale(1); }
+                50% { opacity: 0.7; transform: scale(1.05); }
+                100% { opacity: 1; transform: scale(1); }
+              }
+            `;
+            document.head.appendChild(style);
+          }
+          
+          // Get field information from the extension
+          const fieldNames = new Set();
+          const fieldValues = new Set();
+          const numericValues = new Set();
+          
+          const hypercube = layout?.qHyperCube;
+          if (hypercube) {
+            // Collect dimension field names and values
+            hypercube.qDimensionInfo?.forEach((dim, index) => {
+              const actualFieldName = dim.qGroupFieldDefs?.[0] || dim.qFallbackTitle;
+              if (actualFieldName && actualFieldName.length > 2) {
+                fieldNames.add(actualFieldName);
+              }
+              
+              // Extract values from data
+              hypercube.qDataPages?.[0]?.qMatrix?.forEach(row => {
+                const value = row[index]?.qText;
+                if (value && value.trim() && value.length > 2) {
+                  fieldValues.add(value.trim());
+                }
+              });
+            });
+            
+            // Collect measure field names and values
+            hypercube.qMeasureInfo?.forEach((measure, index) => {
+              const actualFieldName = measure.qDef?.qDef || measure.qFallbackTitle;
+              if (actualFieldName && actualFieldName.length > 2) {
+                fieldNames.add(actualFieldName);
+              }
+              
+              // Extract values from data
+              const measureIndex = (hypercube.qDimensionInfo?.length || 0) + index;
+              hypercube.qDataPages?.[0]?.qMatrix?.forEach(row => {
+                const value = row[measureIndex]?.qText || row[measureIndex]?.qNum;
+                if (value !== undefined && value !== '' && String(value).length > 1) {
+                  fieldValues.add(String(value));
+                  // Separately track numeric values from your data
+                  if (!isNaN(value) && value !== '') {
+                    numericValues.add(String(value));
+                  }
+                }
+              });
+            });
+          }
+          
+          console.log('📊 Fields to highlight:', Array.from(fieldNames).slice(0, 3));
+          console.log('📊 Values to highlight:', Array.from(fieldValues).slice(0, 3));
+          console.log('📊 Numeric values to highlight:', Array.from(numericValues).slice(0, 3));
+          
+          // Get text content and apply highlighting using text replacement
+          let textContent = contentElement.innerHTML;
+          
+          // Format bullets: larger bullets only, more specific matching
+          textContent = textContent.replace(/•/g, '<br><span style="font-size: 20px;">•</span>');
+          // Only match numbers at start of line or after line break, followed by space and text
+          textContent = textContent.replace(/(^|\n)(\d+\.)\s+([A-Z])/g, '$1<span style="font-size: 18px; font-weight: bold;">$2</span> $3');
+          
+          // Highlight numeric values first (purple) - before other field values
+          numericValues.forEach(numValue => {
+            if (!isNaN(numValue) && String(numValue).length > 0) {
+              const escapedNum = String(numValue).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              const regex = new RegExp(`\\b${escapedNum}\\b`, 'gi');
+              textContent = textContent.replace(regex, `<span class="number-highlight">${numValue}</span>`);
+            }
+          });
+          
+          // Highlight field names (blue)
+          fieldNames.forEach(fieldName => {
+            const escapedField = fieldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`\\b${escapedField}\\b`, 'gi');
+            textContent = textContent.replace(regex, `<span class="qlik-field">${fieldName}</span>`);
+          });
+          
+          // Highlight non-numeric field values (blue)
+          fieldValues.forEach(value => {
+            if (String(value).length > 2 && isNaN(value)) { // Only non-numeric values
+              const escapedValue = String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+              const regex = new RegExp(`\\b${escapedValue}\\b`, 'gi');
+              textContent = textContent.replace(regex, `<span class="qlik-value">${value}</span>`);
+            }
+          });
+          
+          // Apply the highlighted content
+          contentElement.innerHTML = textContent;
+          
+          console.log('✅ Simple highlighting applied');
+        };
+
+        // Generate Analysis Function
+        const generateAnalysis = async () => {
+          try {
+            // Create global loading overlay for entire extension
+            const loadingOverlay = document.createElement('div');
+            loadingOverlay.id = 'global-loading-overlay';
+            loadingOverlay.style.cssText = `
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              background: rgba(248, 249, 250, 0.95);
+              z-index: 9999;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              backdrop-filter: blur(2px);
+            `;
+            
+            loadingOverlay.innerHTML = `
+              <div style="
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 16px;
+                padding: 32px;
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+                border: 1px solid #e8e8e8;
+              ">
+                <div style="
+                  width: 40px;
+                  height: 40px;
+                  border: 4px solid #f3f3f3;
+                  border-radius: 50%;
+                  border-top: 4px solid #1890ff;
+                  animation: spin 1s linear infinite;
+                "></div>
+                <div style="
+                  font-size: 16px;
+                  font-weight: 600;
+                  color: #333;
+                  margin-bottom: 4px;
+                ">🤖 AI Analysis in Progress</div>
+                <div style="
+                  font-size: 14px;
+                  color: #666;
+                  text-align: center;
+                  line-height: 1.4;
+                ">Processing your data and generating insights...<br/>This may take a few moments.</div>
+              </div>
+            `;
+            
+            // Add to main container (scoped to this element)
+            const mainContainer = element.querySelector(`#${uniqueMainId}`);
+            if (mainContainer) {
+              mainContainer.style.position = 'relative';
+              mainContainer.appendChild(loadingOverlay);
+            }
+
+            const analyzeBtn = element.querySelector(`#${uniqueAnalyzeBtnId}`);
+            const resultDiv = element.querySelector('#analysis-result');
+            const contentDiv = element.querySelector('#analysis-content');
+
+                         // Show loading state with spinner
+             analyzeBtn.disabled = true;
+             analyzeBtn.innerHTML = `
+               <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                 <div style="
+                   width: 16px;
+                   height: 16px;
+                   border: 2px solid #f3f3f3;
+                   border-radius: 50%;
+                   border-top: 2px solid #1890ff;
+                   animation: spin 1s linear infinite;
+                 "></div>
+                 <span>Analyzing...</span>
+               </div>
+             `;
+             analyzeBtn.style.background = '#f5f5f5';
+             analyzeBtn.style.color = '#999';
+             analyzeBtn.style.cursor = 'not-allowed';
+             
+                           // Add spinner animation CSS if not already added
+              if (!document.getElementById('spinner-style')) {
+                const style = document.createElement('style');
+                style.id = 'spinner-style';
+                style.textContent = `
+                  @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                  }
+                `;
+                document.head.appendChild(style);
+              }
+
+            // Transform UI immediately when analysis starts
+            transformToResultsView();
+
+            // Get current data from layout
+            const dataRows = layout?.qHyperCube?.qDataPages?.[0]?.qMatrix?.length || 0;
+            const dimensions = layout?.qHyperCube?.qDimensionInfo?.length || 0;
+            const measures = layout?.qHyperCube?.qMeasureInfo?.length || 0;
+
+                         // Get prompts (with localStorage fallback)
+             let systemPrompt = layout?.props?.systemPrompt || '';
+             let userPrompt = layout?.props?.userPrompt || '';
+             
+             // Fallback to localStorage if not in layout
+             if (!systemPrompt || !userPrompt) {
+               try {
+                 const objectId = layout?.qInfo?.qId || model?.id || 'unknown';
+                 const extensionId = `qlikLLM_object_${objectId}`;
+                 const stored = localStorage.getItem(`qlik_prompts_${extensionId}`);
+                 if (stored) {
+                   const storedData = JSON.parse(stored);
+                   systemPrompt = systemPrompt || storedData.systemPrompt || '';
+                   userPrompt = userPrompt || storedData.userPrompt || '';
+                 }
+               } catch (e) {
+                 console.warn('Could not load prompts from localStorage:', e);
+               }
+             }
+
+             // Replace field references with actual data
+             userPrompt = await replaceFieldReferences(userPrompt, layout);
+
+            console.log('🔍 Generating analysis with context:', {
+              systemPrompt: systemPrompt.substring(0, 50) + '...',
+              userPrompt: userPrompt.substring(0, 50) + '...',
+              dataRows,
+              dimensions,
+              measures
+            });
+
+            // Get connection details
+            const connectionName = layout?.props?.connectionName || '';
+            const temperature = layout?.props?.temperature || 0.7;
+            
+            console.log('🤖 Calling Claude via Qlik SSE:', {
+              connection: connectionName,
+              systemPromptLength: systemPrompt.length,
+              userPromptLength: userPrompt.length,
+              temperature
+            });
+
+            // Call Claude using Nebula.js model API
+            const response = await callClaudeAPI(systemPrompt, userPrompt, connectionName, temperature);
+            
+                         // Show results with simple highlighting
+             contentDiv.innerHTML = response;
+             applySimpleHighlighting(contentDiv, layout);
+             resultDiv.style.display = 'block';
+
+             console.log('✅ Analysis completed successfully');
+
+          } catch (error) {
+            console.error('❌ Error generating analysis:', error);
+            
+            const contentDiv = document.getElementById('analysis-content');
+            const resultDiv = document.getElementById('analysis-result');
+            
+            contentDiv.innerHTML = `
+              <div style="color: #d32f2f;">
+                <strong>Error:</strong> ${error.message}<br>
+                <small>Please check your connection configuration and try again.</small>
+              </div>
+            `;
+            resultDiv.style.display = 'block';
+                     } finally {
+             // Remove global loading overlay (scoped to this element)
+             const loadingOverlay = element.querySelector('#global-loading-overlay');
+             if (loadingOverlay) {
+               loadingOverlay.remove();
+             }
+             
+             // Reset button state only if analysis failed (button will be hidden on success)
+             const analyzeBtn = element.querySelector(`#${uniqueAnalyzeBtnId}`);
+             const resultDiv = element.querySelector('#analysis-result');
+             
+             if (!resultDiv || resultDiv.style.display === 'none') {
+               // Only reset if analysis failed
+               analyzeBtn.disabled = false;
+               analyzeBtn.textContent = 'Generate Analysis';
+               analyzeBtn.style.background = '#1890ff';
+               analyzeBtn.style.color = 'white';
+               analyzeBtn.style.cursor = 'pointer';
+             }
+           }
+        };
+
+                // FIXED: Robust expression building with proper escaping
+        const buildLLMExpression = (fullPrompt, props) => {
+          console.log("🏗️ Building LLM expression (ultra-safe approach)...");
+          
+          // Step 1: Validate inputs
+          const connectionName = String(props.connectionName || '').trim();
+          if (!connectionName) {
+            throw new Error("Connection name is required");
+          }
+          
+          // Step 2: Clean prompt - be more aggressive about removing problematic characters
+          let cleanPrompt = String(fullPrompt || '')
+            .trim()
+            .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, '') // Control chars
+            .replace(/'/g, "'")       // Normalize quotes  
+            .replace(/"/g, '"')       // Normalize double quotes
+            .replace(/\r\n/g, '\n')   // Normalize line endings
+            .replace(/\r/g, '\n');
+          
+          if (!cleanPrompt) {
+            throw new Error("Prompt is empty after cleaning");
+          }
+          
+          console.log("📝 Cleaned prompt length:", cleanPrompt.length);
+          
+          // Step 3: Build config with safe numeric values
+          const temperature = Math.max(0, Math.min(2, Number(props.temperature || 0.7)));
+          const topK = Math.max(1, Math.min(1000, Number(props.topK || 250)));
+          const topP = Math.max(0, Math.min(1, Number(props.topP || 1)));
+          const maxTokens = Math.max(1, Math.min(4000, Number(props.maxTokens || 1000)));
+          
+          // Step 4: Use the simplest possible approach that works - include all parameters
+          const configStr = `{"RequestType":"endpoint","endpoint":{"connectionname":"${connectionName.replace(/"/g, '\\"')}","column":"text","parameters":{"temperature":${temperature},"Top K":${topK},"Top P":${topP},"max_tokens":${maxTokens}}}}`;
+          
+          // Step 5: Use double single quotes for Qlik string escaping
+          const escapedPrompt = cleanPrompt.replace(/'/g, "''");
+          
+          // Step 6: Build expression
+          const expression = `endpoints.ScriptEvalStr('${configStr}', '${escapedPrompt}')`;
+          
+          console.log("🔒 Using ultra-safe Qlik escaping approach");
+          console.log("🔍 Config string:", configStr.substring(0, 100) + "...");
+          console.log("🔍 Escaped prompt preview:", escapedPrompt.substring(0, 100) + "...");
+          console.log("✅ Expression built successfully, length:", expression.length);
+          console.log("🔍 Expression preview:", expression.substring(0, 200) + "...");
+          
+          return expression;
+        };
+
+        // Claude API calling function using the robust approach
+        const callClaudeAPI = async (systemPrompt, userPrompt, connectionName, temperature) => {
+          try {
+            // Combine system and user prompts with proper formatting
+            const fullPrompt = `${systemPrompt}\n\n${userPrompt}\n\nAssistant:`;
+            
+            // Get all props for the expression builder
+            const props = {
+              connectionName: connectionName,
+              temperature: temperature,
+              topK: layout?.props?.topK || 250,
+              topP: layout?.props?.topP || 1,
+              maxTokens: layout?.props?.maxTokens || 1000
+            };
+
+            console.log('🤖 Attempting robust endpoints.ScriptEvalStr call');
+            
+            // Build the expression using the robust method
+            const expressionString = buildLLMExpression(fullPrompt, props);
+
+                         // Use the app object to evaluate the expression
+             const result = await app.evaluate(expressionString);
+             
+             // Handle the result - app.evaluate returns a string directly
+             if (typeof result === 'string' && result.trim()) {
+               console.log('✅ Claude API call successful, response length:', result.length);
+               return result;
+             }
+             
+             throw new Error(`ScriptEvalStr call returned empty or invalid result`);
+
+          } catch (evalError) {
+            console.log('❌ Robust ScriptEvalStr call failed:', evalError);
+            throw new Error(`Claude API call failed: ${evalError.message}. Please check your connection configuration and ensure the connection "${connectionName}" is properly set up.`);
+          }
+        };
 
         // Function to show prompts modal
         const showPromptsModal = () => {
@@ -598,60 +1435,7 @@ export default function supernova() {
             }
           }, 50);
 
-          // Function to add Generate Analysis button
-          const addGenerateAnalysisButton = () => {
-            // Check if button container already exists for this specific object
-            if (element.querySelector(`#${uniqueButtonContainerId}`)) {
-              return; // Button already exists
-            }
-            
-            // Find the steps container to insert button before it (scoped to this element)
-            const stepsContainer = element.querySelector(`#${uniqueStepsId}`);
-            if (!stepsContainer) {
-              console.warn('Steps container not found for object:', objectId);
-              return;
-            }
-            
-            // Create button container
-            const buttonContainer = document.createElement('div');
-            buttonContainer.id = uniqueButtonContainerId;
-            buttonContainer.style.cssText = `
-              width: 100%;
-              max-width: min(400px, 85vw);
-              margin-bottom: clamp(10px, 1.5vh, 18px);
-              text-align: center;
-              transition: all 0.5s ease;
-            `;
-            
-            // Create the button
-            buttonContainer.innerHTML = `
-              <button id="${uniqueAnalyzeBtnId}" style="
-                background: #1890ff;
-                color: white;
-                border: none;
-                border-radius: 3px;
-                padding: clamp(6px, 0.8vh, 7px) clamp(12px, 1.8vw, 14px);
-                font-size: clamp(11px, 1.8vw, 13px);
-                font-weight: 500;
-                cursor: pointer;
-                transition: all 0.3s ease;
-                min-width: clamp(100px, 18vw, 120px);
-              " onmouseover="this.style.background='#0c7cd5'" onmouseout="this.style.background='#1890ff'">
-                Generate Analysis
-              </button>
-            `;
-            
-            // Insert button before steps container
-            stepsContainer.parentNode.insertBefore(buttonContainer, stepsContainer);
-            
-            // Add click event listener to the button (scoped to this element)
-            const analyzeBtn = element.querySelector(`#${uniqueAnalyzeBtnId}`);
-            if (analyzeBtn) {
-              analyzeBtn.onclick = generateAnalysis;
-            }
-            
-            console.log('✅ Generate Analysis button added');
-          };
+
 
           // Add event listeners
           document.getElementById('close-modal').onclick = () => {
@@ -769,8 +1553,8 @@ export default function supernova() {
                   step4Desc.innerHTML = 'System and user prompts configured';
                 }
                 
-                // Add Generate Analysis button since all steps are now complete
-                addGenerateAnalysisButton();
+                // Update Generate Analysis button visibility
+                updateGenerateAnalysisButtonVisibility();
               }, 500); // Small delay to show the disabled state
               
             } catch (error) {
@@ -1192,16 +1976,7 @@ export default function supernova() {
 
 
 
-        // Generate unique IDs for this object instance  
-        const objectId = layout?.qInfo?.qId || model?.id || 'unknown';
-        const uniqueMainId = `main-container-${objectId}`;
-        const uniqueFullHeaderId = `full-header-${objectId}`;
-        const uniqueButtonContainerId = `button-container-${objectId}`;
-        const uniqueAnalyzeBtnId = `analyze-btn-${objectId}`;
-        const uniqueStepsId = `steps-container-${objectId}`;
-        const uniqueTimelineHeaderId = `timeline-header-${objectId}`;
-
-        // Clear and setup the exact UI design
+                // Clear and setup the exact UI design
         element.innerHTML = `
           <div id="${uniqueMainId}" style="
             padding: clamp(8px, 1vh, 12px) clamp(12px, 1.5vw, 16px); 
@@ -1364,9 +2139,11 @@ export default function supernova() {
               </div>
 
               <!-- Step 3: Setup Selection Validation -->
-              <div style="
-                background: ${isSelectionValidationConfigured ? '#f6ffed' : '#f5f5f5'};
-                border: 1px solid ${isSelectionValidationConfigured ? '#b7eb8f' : '#d9d9d9'};
+              <div data-step="3" class="selection-validation-step" style="
+                background: ${validationState.status === 'configured_with_selections' ? '#f6ffed' : 
+                           validationState.status === 'configured_no_selections' ? '#fffbe6' : '#f5f5f5'};
+                border: 1px solid ${validationState.status === 'configured_with_selections' ? '#b7eb8f' : 
+                                  validationState.status === 'configured_no_selections' ? '#ffd666' : '#d9d9d9'};
                 border-radius: 4px;
                 padding: clamp(6px, 0.8vh, 8px) clamp(8px, 1.2vw, 10px);
                 display: flex;
@@ -1379,7 +2156,8 @@ export default function supernova() {
                   width: clamp(20px, 3vw, 24px);
                   height: clamp(20px, 3vw, 24px);
                   border-radius: 50%;
-                  background: ${isSelectionValidationConfigured ? '#52c41a' : '#595959'};
+                  background: ${validationState.status === 'configured_with_selections' ? '#52c41a' : 
+                              validationState.status === 'configured_no_selections' ? '#faad14' : '#595959'};
                   color: white;
                   display: flex;
                   align-items: center;
@@ -1388,24 +2166,27 @@ export default function supernova() {
                   font-size: clamp(10px, 1.5vw, 12px);
                   flex-shrink: 0;
                 ">
-                  ${isSelectionValidationConfigured ? '✓' : '3'}
+                  ${validationState.status === 'configured_with_selections' ? '✓' : 
+                    validationState.status === 'configured_no_selections' ? '!' : '3'}
                 </div>
                 <div style="flex: 1;">
                   <h3 style="
-                    margin: 0 0 4px 0;
-                    color: ${isSelectionValidationConfigured ? '#52c41a' : '#595959'};
-                    font-size: 16px;
+                    margin: 0 0 clamp(1px, 0.2vh, 2px) 0;
+                    color: ${validationState.status === 'configured_with_selections' ? '#52c41a' : 
+                            validationState.status === 'configured_no_selections' ? '#faad14' : '#595959'};
+                    font-size: clamp(11px, 1.8vw, 13px);
                     font-weight: 600;
-                  ">${isSelectionValidationConfigured ? 'Selection Validation Configured ✓' : 'Setup Selection Validation'}</h3>
+                    line-height: 1.1;
+                  ">${validationState.status === 'configured_with_selections' ? 'Selection Validation Active ✓' : 
+                      validationState.status === 'configured_no_selections' ? 'Awaiting Selection' : 
+                      'Setup Selection Validation'}</h3>
                   <p style="
                     margin: 0;
                     color: #8c8c8c;
-                    font-size: 14px;
+                    font-size: clamp(9px, 1.4vw, 10px);
                     font-weight: 400;
-                  ">${isSelectionValidationConfigured ? 
-                    'Custom validation expression configured' : 
-                    'Enable validation in Selection Validation panel'
-                  }</p>
+                    line-height: 1.2;
+                  ">${validationState.message}</p>
                 </div>
               </div>
 
@@ -1534,58 +2315,6 @@ export default function supernova() {
           </div>
         `;
 
-        // Transform UI to results-focused view - instant and smooth
-        const transformToResultsView = () => {
-          console.log('🔄 Transforming UI to results view...');
-          
-          // Hide full header, steps, and button with animation (scoped to this element)
-          const fullHeader = element.querySelector(`#${uniqueFullHeaderId}`);
-          const stepsContainer = element.querySelector(`#${uniqueStepsId}`);
-          const timelineHeader = element.querySelector(`#${uniqueTimelineHeaderId}`);
-          const buttonContainer = element.querySelector(`#${uniqueButtonContainerId}`);
-          const mainContainer = element.querySelector(`#${uniqueMainId}`);
-          
-          if (fullHeader && stepsContainer) {
-            // Fast, smooth fade out - no visible movement
-            fullHeader.style.transition = 'opacity 0.15s ease-out';
-            stepsContainer.style.transition = 'opacity 0.15s ease-out';
-            
-            if (buttonContainer) {
-              buttonContainer.style.transition = 'opacity 0.15s ease-out';
-            }
-            
-            // Quick fade out without transform (no jumping)
-            fullHeader.style.opacity = '0';
-            stepsContainer.style.opacity = '0';
-            
-            if (buttonContainer) {
-              buttonContainer.style.opacity = '0';
-            }
-            
-            // Much faster transition - almost instant
-            setTimeout(() => {
-              // Hide elements immediately
-              fullHeader.style.display = 'none';
-              stepsContainer.style.display = 'none';
-              if (buttonContainer) {
-                buttonContainer.style.display = 'none';
-              }
-              
-              // Remove grey background for results view
-              if (mainContainer) {
-                mainContainer.style.background = 'transparent';
-                mainContainer.style.transition = 'background 0.15s ease-out';
-              }
-              
-              // Show timeline header inside the results box immediately
-              if (timelineHeader) {
-                timelineHeader.style.display = 'block';
-                timelineHeader.style.opacity = '1';
-              }
-            }, 150); // Much faster - 150ms instead of 300ms
-          }
-        };
-
         // Add analyze button click handler (scoped to this element)
         const analyzeBtn = element.querySelector(`#${uniqueAnalyzeBtnId}`);
         if (analyzeBtn) {
@@ -1594,510 +2323,16 @@ export default function supernova() {
           };
         }
 
-        // Replace field references in prompts with actual data
-        const replaceFieldReferences = async (prompt, layout) => {
-          try {
-            console.log('🔄 Replacing field references in prompt...');
-            
-            let processedPrompt = prompt;
-            const hypercube = layout?.qHyperCube;
-            
-            if (!hypercube || !hypercube.qDataPages?.[0]?.qMatrix?.length) {
-              console.warn('⚠️ No data available for field replacement');
-              return processedPrompt;
-            }
-
-            const matrix = hypercube.qDataPages[0].qMatrix;
-            const dimensionInfo = hypercube.qDimensionInfo || [];
-            const measureInfo = hypercube.qMeasureInfo || [];
-            
-            // Build field data map
-            const fieldData = {};
-            
-                         // Map dimension data using actual field names from your extension
-             dimensionInfo.forEach((dim, index) => {
-               // Use the actual field name from qGroupFieldDefs (the real field name)
-               const actualFieldName = dim.qGroupFieldDefs?.[0] || dim.qFallbackTitle || `Dimension${index}`;
-               const displayName = dim.qFallbackTitle || actualFieldName;
-               
-               const values = matrix.map(row => row[index]?.qText || '').filter(v => v.trim());
-               
-               // Store with both actual field name and display name for flexible matching
-               fieldData[actualFieldName] = values.join(', ');
-               if (displayName !== actualFieldName) {
-                 fieldData[displayName] = values.join(', ');
-               }
-               
-               console.log(`📊 Dimension: [${actualFieldName}] = ${values.length} values`);
-             });
-             
-             // Map measure data using actual field names from your extension
-             measureInfo.forEach((measure, index) => {
-               // Use the actual field name from the measure definition
-               const actualFieldName = measure.qDef?.qDef || measure.qFallbackTitle || `Measure${index}`;
-               const displayName = measure.qFallbackTitle || actualFieldName;
-               
-               const measureIndex = dimensionInfo.length + index;
-               const values = matrix.map(row => row[measureIndex]?.qText || row[measureIndex]?.qNum || '').filter(v => v !== '');
-               
-               // Store with both actual field name and display name for flexible matching
-               fieldData[actualFieldName] = values.join(', ');
-               if (displayName !== actualFieldName) {
-                 fieldData[displayName] = values.join(', ');
-               }
-               
-               console.log(`📊 Measure: [${actualFieldName}] = ${values.length} values`);
-             });
-
-            console.log('📊 Available fields for replacement:', Object.keys(fieldData));
-
-            // Replace field references in the format [FieldName]
-            const fieldPattern = /\[([^\]]+)\]/g;
-            processedPrompt = processedPrompt.replace(fieldPattern, (match, fieldName) => {
-              if (fieldData[fieldName]) {
-                console.log(`🔄 Replaced [${fieldName}] with data: ${fieldData[fieldName].substring(0, 50)}...`);
-                return fieldData[fieldName];
-              } else {
-                console.warn(`⚠️ Field [${fieldName}] not found in data`);
-                return match; // Keep original if not found
-              }
-            });
-
-                         // Special handling for concatenated data patterns like [Field1]|[Field2]|[Field3]
-             const pipePattern = /\[([^\]]+)\]\|(\[([^\]]+)\])/g;
-             let match;
-             while ((match = pipePattern.exec(processedPrompt)) !== null) {
-               console.log('🔍 Found pipe-separated pattern, creating data table...');
-               
-               // Build data table with all rows
-               let dataRows = [];
-               matrix.forEach(row => {
-                 const rowData = [];
-                 
-                 // Add all dimensions
-                 dimensionInfo.forEach((dim, index) => {
-                   rowData.push(row[index]?.qText || '');
-                 });
-                 
-                 // Add all measures
-                 measureInfo.forEach((measure, index) => {
-                   const measureIndex = dimensionInfo.length + index;
-                   rowData.push(row[measureIndex]?.qText || row[measureIndex]?.qNum || '');
-                 });
-                 
-                 dataRows.push(rowData.join('|'));
-               });
-               
-               // Replace the entire pattern with actual data
-               const originalPattern = match[0];
-               processedPrompt = processedPrompt.replace(originalPattern, dataRows.join('\n'));
-               console.log(`🔄 Replaced "${originalPattern}" with ${dataRows.length} data rows`);
-               break; // Handle one pattern at a time
-             }
-
-            console.log('✅ Field replacement completed');
-            return processedPrompt;
-            
-          } catch (error) {
-            console.error('❌ Error in field replacement:', error);
-            return prompt; // Return original prompt if replacement fails
-          }
-        };
-
-
-
-        // Simple highlighting function that works on already-rendered content
-        const applySimpleHighlighting = (contentElement, layout) => {
-          if (!contentElement) return;
-          
-          console.log('🎨 Applying simple highlighting...');
-          
-          // Add CSS styles if not already added
-          if (!document.getElementById('highlight-styles')) {
-            const style = document.createElement('style');
-            style.id = 'highlight-styles';
-                         style.textContent = `
-               .qlik-field { background: #e6f7ff !important; color: #0066cc !important; padding: 1px 3px !important; border-radius: 3px !important; font-weight: 600 !important; }
-               .qlik-value { background: #e6f7ff !important; color: #0066cc !important; padding: 1px 3px !important; border-radius: 3px !important; font-weight: 500 !important; }
-               .number-highlight { background: #f3e8ff !important; color: #7c3aed !important; padding: 1px 3px !important; border-radius: 3px !important; font-weight: 600 !important; }
-             `;
-            document.head.appendChild(style);
-          }
-          
-          // Get field information from the extension
-          const fieldNames = new Set();
-          const fieldValues = new Set();
-          const numericValues = new Set();
-          
-          const hypercube = layout?.qHyperCube;
-          if (hypercube) {
-            // Collect dimension field names and values
-            hypercube.qDimensionInfo?.forEach((dim, index) => {
-              const actualFieldName = dim.qGroupFieldDefs?.[0] || dim.qFallbackTitle;
-              if (actualFieldName && actualFieldName.length > 2) {
-                fieldNames.add(actualFieldName);
-              }
-              
-              // Extract values from data
-              hypercube.qDataPages?.[0]?.qMatrix?.forEach(row => {
-                const value = row[index]?.qText;
-                if (value && value.trim() && value.length > 2) {
-                  fieldValues.add(value.trim());
-                }
-              });
-            });
-            
-            // Collect measure field names and values
-            hypercube.qMeasureInfo?.forEach((measure, index) => {
-              const actualFieldName = measure.qDef?.qDef || measure.qFallbackTitle;
-              if (actualFieldName && actualFieldName.length > 2) {
-                fieldNames.add(actualFieldName);
-              }
-              
-              // Extract values from data
-              const measureIndex = (hypercube.qDimensionInfo?.length || 0) + index;
-              hypercube.qDataPages?.[0]?.qMatrix?.forEach(row => {
-                const value = row[measureIndex]?.qText || row[measureIndex]?.qNum;
-                if (value !== undefined && value !== '' && String(value).length > 1) {
-                  fieldValues.add(String(value));
-                  // Separately track numeric values from your data
-                  if (!isNaN(value) && value !== '') {
-                    numericValues.add(String(value));
-                  }
-                }
-              });
-            });
-          }
-          
-          console.log('📊 Fields to highlight:', Array.from(fieldNames).slice(0, 3));
-          console.log('📊 Values to highlight:', Array.from(fieldValues).slice(0, 3));
-          console.log('📊 Numeric values to highlight:', Array.from(numericValues).slice(0, 3));
-          
-          // Get text content and apply highlighting using text replacement
-          let textContent = contentElement.innerHTML;
-          
-          // Format bullets: larger bullets only, more specific matching
-          textContent = textContent.replace(/•/g, '<br><span style="font-size: 20px;">•</span>');
-          // Only match numbers at start of line or after line break, followed by space and text
-          textContent = textContent.replace(/(^|\n)(\d+\.)\s+([A-Z])/g, '$1<span style="font-size: 18px; font-weight: bold;">$2</span> $3');
-          
-          // Highlight numeric values first (purple) - before other field values
-          numericValues.forEach(numValue => {
-            if (!isNaN(numValue) && String(numValue).length > 0) {
-              const escapedNum = String(numValue).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-              const regex = new RegExp(`\\b${escapedNum}\\b`, 'gi');
-              textContent = textContent.replace(regex, `<span class="number-highlight">${numValue}</span>`);
-            }
-          });
-          
-          // Highlight field names (blue)
-          fieldNames.forEach(fieldName => {
-            const escapedField = fieldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const regex = new RegExp(`\\b${escapedField}\\b`, 'gi');
-            textContent = textContent.replace(regex, `<span class="qlik-field">${fieldName}</span>`);
-          });
-          
-          // Highlight non-numeric field values (blue)
-          fieldValues.forEach(value => {
-            if (String(value).length > 2 && isNaN(value)) { // Only non-numeric values
-              const escapedValue = String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-              const regex = new RegExp(`\\b${escapedValue}\\b`, 'gi');
-              textContent = textContent.replace(regex, `<span class="qlik-value">${value}</span>`);
-            }
-          });
-          
-          // Apply the highlighted content
-          contentElement.innerHTML = textContent;
-          
-          console.log('✅ Simple highlighting applied');
-        };
-
-        // Generate Analysis Function
-        const generateAnalysis = async () => {
-          try {
-            // Create global loading overlay for entire extension
-            const loadingOverlay = document.createElement('div');
-            loadingOverlay.id = 'global-loading-overlay';
-            loadingOverlay.style.cssText = `
-              position: absolute;
-              top: 0;
-              left: 0;
-              width: 100%;
-              height: 100%;
-              background: rgba(248, 249, 250, 0.95);
-              z-index: 9999;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-              backdrop-filter: blur(2px);
-            `;
-            
-            loadingOverlay.innerHTML = `
-              <div style="
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                gap: 16px;
-                padding: 32px;
-                background: white;
-                border-radius: 12px;
-                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-                border: 1px solid #e8e8e8;
-              ">
-                <div style="
-                  width: 40px;
-                  height: 40px;
-                  border: 4px solid #f3f3f3;
-                  border-radius: 50%;
-                  border-top: 4px solid #1890ff;
-                  animation: spin 1s linear infinite;
-                "></div>
-                <div style="
-                  font-size: 16px;
-                  font-weight: 600;
-                  color: #333;
-                  margin-bottom: 4px;
-                ">🤖 AI Analysis in Progress</div>
-                <div style="
-                  font-size: 14px;
-                  color: #666;
-                  text-align: center;
-                  line-height: 1.4;
-                ">Processing your data and generating insights...<br/>This may take a few moments.</div>
-              </div>
-            `;
-            
-            // Add to main container (scoped to this element)
-            const mainContainer = element.querySelector(`#${uniqueMainId}`);
-            if (mainContainer) {
-              mainContainer.style.position = 'relative';
-              mainContainer.appendChild(loadingOverlay);
-            }
-
-            const analyzeBtn = element.querySelector(`#${uniqueAnalyzeBtnId}`);
-            const resultDiv = element.querySelector('#analysis-result');
-            const contentDiv = element.querySelector('#analysis-content');
-
-                         // Show loading state with spinner
-             analyzeBtn.disabled = true;
-             analyzeBtn.innerHTML = `
-               <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-                 <div style="
-                   width: 16px;
-                   height: 16px;
-                   border: 2px solid #f3f3f3;
-                   border-radius: 50%;
-                   border-top: 2px solid #1890ff;
-                   animation: spin 1s linear infinite;
-                 "></div>
-                 <span>Analyzing...</span>
-               </div>
-             `;
-             analyzeBtn.style.background = '#f5f5f5';
-             analyzeBtn.style.color = '#999';
-             analyzeBtn.style.cursor = 'not-allowed';
-             
-                           // Add spinner animation CSS if not already added
-              if (!document.getElementById('spinner-style')) {
-                const style = document.createElement('style');
-                style.id = 'spinner-style';
-                style.textContent = `
-                  @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
-                  }
-                `;
-                document.head.appendChild(style);
-              }
-
-            // Transform UI immediately when analysis starts
-            transformToResultsView();
-
-            // Get current data from layout
-            const dataRows = layout?.qHyperCube?.qDataPages?.[0]?.qMatrix?.length || 0;
-            const dimensions = layout?.qHyperCube?.qDimensionInfo?.length || 0;
-            const measures = layout?.qHyperCube?.qMeasureInfo?.length || 0;
-
-                         // Get prompts (with localStorage fallback)
-             let systemPrompt = layout?.props?.systemPrompt || '';
-             let userPrompt = layout?.props?.userPrompt || '';
-             
-             // Fallback to localStorage if not in layout
-             if (!systemPrompt || !userPrompt) {
-               try {
-                 const objectId = layout?.qInfo?.qId || model?.id || 'unknown';
-                 const extensionId = `qlikLLM_object_${objectId}`;
-                 const stored = localStorage.getItem(`qlik_prompts_${extensionId}`);
-                 if (stored) {
-                   const storedData = JSON.parse(stored);
-                   systemPrompt = systemPrompt || storedData.systemPrompt || '';
-                   userPrompt = userPrompt || storedData.userPrompt || '';
-                 }
-               } catch (e) {
-                 console.warn('Could not load prompts from localStorage:', e);
-               }
-             }
-
-             // Replace field references with actual data
-             userPrompt = await replaceFieldReferences(userPrompt, layout);
-
-            console.log('🔍 Generating analysis with context:', {
-              systemPrompt: systemPrompt.substring(0, 50) + '...',
-              userPrompt: userPrompt.substring(0, 50) + '...',
-              dataRows,
-              dimensions,
-              measures
-            });
-
-            // Get connection details
-            const connectionName = layout?.props?.connectionName || '';
-            const temperature = layout?.props?.temperature || 0.7;
-            
-            console.log('🤖 Calling Claude via Qlik SSE:', {
-              connection: connectionName,
-              systemPromptLength: systemPrompt.length,
-              userPromptLength: userPrompt.length,
-              temperature
-            });
-
-            // Call Claude using Nebula.js model API
-            const response = await callClaudeAPI(systemPrompt, userPrompt, connectionName, temperature);
-            
-                         // Show results with simple highlighting
-             contentDiv.innerHTML = response;
-             applySimpleHighlighting(contentDiv, layout);
-             resultDiv.style.display = 'block';
-
-             console.log('✅ Analysis completed successfully');
-
-          } catch (error) {
-            console.error('❌ Error generating analysis:', error);
-            
-            const contentDiv = document.getElementById('analysis-content');
-            const resultDiv = document.getElementById('analysis-result');
-            
-            contentDiv.innerHTML = `
-              <div style="color: #d32f2f;">
-                <strong>Error:</strong> ${error.message}<br>
-                <small>Please check your connection configuration and try again.</small>
-              </div>
-            `;
-            resultDiv.style.display = 'block';
-                     } finally {
-             // Remove global loading overlay (scoped to this element)
-             const loadingOverlay = element.querySelector('#global-loading-overlay');
-             if (loadingOverlay) {
-               loadingOverlay.remove();
-             }
-             
-             // Reset button state only if analysis failed (button will be hidden on success)
-             const analyzeBtn = element.querySelector(`#${uniqueAnalyzeBtnId}`);
-             const resultDiv = element.querySelector('#analysis-result');
-             
-             if (!resultDiv || resultDiv.style.display === 'none') {
-               // Only reset if analysis failed
-               analyzeBtn.disabled = false;
-               analyzeBtn.textContent = 'Generate Analysis';
-               analyzeBtn.style.background = '#1890ff';
-               analyzeBtn.style.color = 'white';
-               analyzeBtn.style.cursor = 'pointer';
-             }
-           }
-        };
-
-                // FIXED: Robust expression building with proper escaping
-        const buildLLMExpression = (fullPrompt, props) => {
-          console.log("🏗️ Building LLM expression (ultra-safe approach)...");
-          
-          // Step 1: Validate inputs
-          const connectionName = String(props.connectionName || '').trim();
-          if (!connectionName) {
-            throw new Error("Connection name is required");
-          }
-          
-          // Step 2: Clean prompt - be more aggressive about removing problematic characters
-          let cleanPrompt = String(fullPrompt || '')
-            .trim()
-            .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, '') // Control chars
-            .replace(/'/g, "'")       // Normalize quotes  
-            .replace(/"/g, '"')       // Normalize double quotes
-            .replace(/\r\n/g, '\n')   // Normalize line endings
-            .replace(/\r/g, '\n');
-          
-          if (!cleanPrompt) {
-            throw new Error("Prompt is empty after cleaning");
-          }
-          
-          console.log("📝 Cleaned prompt length:", cleanPrompt.length);
-          
-          // Step 3: Build config with safe numeric values
-          const temperature = Math.max(0, Math.min(2, Number(props.temperature || 0.7)));
-          const topK = Math.max(1, Math.min(1000, Number(props.topK || 250)));
-          const topP = Math.max(0, Math.min(1, Number(props.topP || 1)));
-          const maxTokens = Math.max(1, Math.min(4000, Number(props.maxTokens || 1000)));
-          
-          // Step 4: Use the simplest possible approach that works - include all parameters
-          const configStr = `{"RequestType":"endpoint","endpoint":{"connectionname":"${connectionName.replace(/"/g, '\\"')}","column":"text","parameters":{"temperature":${temperature},"Top K":${topK},"Top P":${topP},"max_tokens":${maxTokens}}}}`;
-          
-          // Step 5: Use double single quotes for Qlik string escaping
-          const escapedPrompt = cleanPrompt.replace(/'/g, "''");
-          
-          // Step 6: Build expression
-          const expression = `endpoints.ScriptEvalStr('${configStr}', '${escapedPrompt}')`;
-          
-          console.log("🔒 Using ultra-safe Qlik escaping approach");
-          console.log("🔍 Config string:", configStr.substring(0, 100) + "...");
-          console.log("🔍 Escaped prompt preview:", escapedPrompt.substring(0, 100) + "...");
-          console.log("✅ Expression built successfully, length:", expression.length);
-          console.log("🔍 Expression preview:", expression.substring(0, 200) + "...");
-          
-          return expression;
-        };
-
-        // Claude API calling function using the robust approach
-        const callClaudeAPI = async (systemPrompt, userPrompt, connectionName, temperature) => {
-          try {
-            // Combine system and user prompts with proper formatting
-            const fullPrompt = `${systemPrompt}\n\n${userPrompt}\n\nAssistant:`;
-            
-            // Get all props for the expression builder
-            const props = {
-              connectionName: connectionName,
-              temperature: temperature,
-              topK: layout?.props?.topK || 250,
-              topP: layout?.props?.topP || 1,
-              maxTokens: layout?.props?.maxTokens || 1000
-            };
-
-            console.log('🤖 Attempting robust endpoints.ScriptEvalStr call');
-            
-            // Build the expression using the robust method
-            const expressionString = buildLLMExpression(fullPrompt, props);
-
-                         // Use the app object to evaluate the expression
-             const result = await app.evaluate(expressionString);
-             
-             // Handle the result - app.evaluate returns a string directly
-             if (typeof result === 'string' && result.trim()) {
-               console.log('✅ Claude API call successful, response length:', result.length);
-               return result;
-             }
-             
-             throw new Error(`ScriptEvalStr call returned empty or invalid result`);
-
-          } catch (evalError) {
-            console.log('❌ Robust ScriptEvalStr call failed:', evalError);
-            throw new Error(`Claude API call failed: ${evalError.message}. Please check your connection configuration and ensure the connection "${connectionName}" is properly set up.`);
-          }
-        };
-
         // Add click handler for prompts button from ext.js
         window.showPromptsModal = showPromptsModal;
       }, [layout]);
 
       return () => {
-        // Cleanup if needed
+        // Cleanup selection validation interval
+        if (window.selectionValidationInterval) {
+          clearInterval(window.selectionValidationInterval);
+          window.selectionValidationInterval = null;
+        }
       };
     },
   };
