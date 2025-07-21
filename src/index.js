@@ -598,8 +598,8 @@ export default function supernova() {
           
           // Format bullets: larger bullets only, more specific matching
           textContent = textContent.replace(/•/g, '<br><span style="font-size: 20px;">•</span>');
-          // Only match numbers at start of line or after line break, followed by space and text
-          textContent = textContent.replace(/(^|\n)(\d+\.)\s+([A-Z])/g, '$1<span style="font-size: 18px; font-weight: bold;">$2</span> $3');
+          // Match numbered lists and add line breaks for proper spacing, just like bullet points
+          textContent = textContent.replace(/(\d+\.)\s+/g, '<br><span style="font-size: 18px; font-weight: bold;">$1</span> ');
           
           // Highlight numeric values first (purple) - before other field values
           numericValues.forEach(numValue => {
