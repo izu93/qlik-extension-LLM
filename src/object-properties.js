@@ -22,8 +22,12 @@ export default {
     // Custom properties for streamlined LLM configuration
     props: {
       connectionType: "claude", // Always Claude for this streamlined version
-      connectionName:
-        "Churn Analytics:Anthropic_Claude35Sonnet_ChurnML", // Claude SSE connection name
+      connectionName: "", // Will be set dynamically from space selection
+      
+      // Space selection properties
+      selectedSpace: "", // Space ID
+      selectedConnection: "", // SpaceName:ConnectionName format
+      
       temperature: 0.7, // Controls randomness in responses (0-1)
       topK: 250, // Limits vocabulary to top K tokens
       topP: 1, // Nucleus sampling parameter

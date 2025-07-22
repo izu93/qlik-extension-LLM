@@ -1,5 +1,7 @@
-// Streamlined ext.js - Simple custom expression validation with fixed examples
-  export default {
+// Clean ext.js with dynamic space and connection selection
+import qlikApiService from "./services/qlik-api-service";
+
+export default {
     definition: {
       type: "items",
       component: "accordion",
@@ -14,27 +16,158 @@
           type: "items",
           label: "LLM Configuration",
           items: {
-            connectionType: {
+
+            // Space Selection
+            spaceHeader: {
+              component: "text",
+              label: "Select Qlik Cloud Space & Connection",
+              style: "font-weight: bold; font-size: 14px; color: #333; margin-top: 10px;",
+              show: function (data) {
+                return true; // Always show since we only support Claude
+              },
+            },
+            
+            selectedSpace: {
               type: "string",
               component: "dropdown",
-              label: "AI Service",
-              ref: "props.connectionType",
-              defaultValue: "claude",
-              options: [
-                {
-                  value: "claude",
-                  label: "🤖 Claude 3.5 Sonnet (External Connection)",
-                },
-              ],
-            },
-            connectionName: {
-              type: "string",
-              label: "Claude Connection Name",
-              ref: "props.connectionName",
-              defaultValue:
-                "",
+              label: "Choose Space",
+              ref: "props.selectedSpace",
+              defaultValue: "",
+              options: async function() {
+                try {
+                  const spaces = await qlikApiService.fetchSpaces();
+                  const options = [];
+                  
+                  // Add personal spaces
+                  spaces.personal.forEach(space => {
+                    options.push({
+                      value: space.id,
+                      label: `${space.name} (Personal)`
+                    });
+                  });
+                  
+                  // Add shared spaces  
+                  spaces.shared.forEach(space => {
+                    options.push({
+                      value: space.id,
+                      label: `${space.name} (Shared)`
+                    });
+                  });
+                  
+                  // Add managed spaces
+                  spaces.managed.forEach(space => {
+                    options.push({
+                      value: space.id,
+                      label: `${space.name} (Managed)`
+                    });
+                  });
+                  
+                  return options.length > 0 ? options : [
+                    { value: "", label: "No spaces found" }
+                  ];
+                } catch (error) {
+                  console.error('Error loading spaces:', error);
+                  return [{ value: "", label: "Error loading spaces" }];
+                }
+              },
+              change: function(data) {
+                // Clear connection selection when space changes
+                data.props.selectedConnection = "";
+                data.props.connectionName = "";
+              },
               show: function (data) {
-                return data.props?.connectionType === "claude";
+                return true;
+              },
+            },
+            
+            selectedConnection: {
+              type: "string",
+              component: "dropdown",
+              label: "Choose AI Connection",
+              ref: "props.selectedConnection",
+              defaultValue: "",
+              options: async function(data) {
+                try {
+                  const selectedSpaceId = data?.props?.selectedSpace;
+                  if (!selectedSpaceId) {
+                    return [{ value: "", label: "Please select a space first" }];
+                  }
+                  
+                  // Get space info and connections
+                  const spaces = await qlikApiService.fetchSpaces();
+                  const allSpaces = [...spaces.personal, ...spaces.shared, ...spaces.managed];
+                  const selectedSpace = allSpaces.find(s => s.id === selectedSpaceId);
+                  
+                  if (!selectedSpace) {
+                    return [{ value: "", label: "Space not found" }];
+                  }
+                  
+                  // Get connections specifically for the selected space
+                  const allConnections = await qlikApiService.fetchDataConnections(selectedSpaceId);
+                  console.log('🔍 Debug: Selected space:', selectedSpace);
+                  console.log('🔍 Debug: Connections for selected space:', allConnections.length);
+                  
+                  // Filter AI connections from the space-specific results
+                  const aiConnections = allConnections.filter(conn => {
+                    const name = conn.name?.toLowerCase() || conn.qName?.toLowerCase() || '';
+                    const isAI = name.includes('anthropic') || name.includes('claude') || name.includes('openai') || name.includes('gpt');
+                    
+                    // Additional debug for space filtering
+                    if (isAI) {
+                      console.log('🔍 AI Connection found:', { 
+                        name: conn.qName || conn.name, 
+                        spaceId: conn.spaceId,
+                        space: conn.space,
+                        selectedSpaceId: selectedSpaceId 
+                      });
+                    }
+                    
+                    return isAI;
+                  });
+                  
+                  console.log('🔍 Debug: AI connections found:', aiConnections);
+                  
+                  // CRITICAL FIX: Use the exact space name format from working manual code
+                  // Manual code used "Churn Analytics" not "Churn Analytics Space"
+                  let workingSpaceName = selectedSpace.name;
+                  if (workingSpaceName === 'Churn Analytics Space') {
+                    workingSpaceName = 'Churn Analytics'; // Use the exact name from working manual code
+                  }
+                  console.log('🔧 Space name mapping:', { original: selectedSpace.name, working: workingSpaceName });
+                  
+                  const options = aiConnections.map(conn => ({
+                    // FIXED: Use the working space name format
+                    value: `${workingSpaceName}:${conn.qName || conn.name}`,
+                    label: `${conn.qName || conn.name}`
+                  }));
+                  
+                  return options.length > 0 ? options : [
+                    { value: "", label: "No AI connections found in this space" }
+                  ];
+                } catch (error) {
+                  console.error('Error loading connections:', error);
+                  return [{ value: "", label: "Error loading connections" }];
+                }
+              },
+              change: function(data) {
+                if (data.props.selectedConnection) {
+                  // FIXED: Store the full connection name with space prefix
+                  data.props.connectionName = data.props.selectedConnection;
+                  console.log('🔗 Connection selected with space prefix:', data.props.selectedConnection);
+                }
+              },
+              show: function (data) {
+                return data.props?.selectedSpace;
+              },
+            },
+            
+            // Active Connection Display
+            activeConnection: {
+              component: "text",
+              label: "Active Connection",
+              style: "background: #f0f8ff; padding: 5px; border-radius: 3px; font-weight: bold;",
+              show: function (data) {
+                return data.props?.connectionName;
               },
             },  
   
@@ -44,8 +177,7 @@
               ref: "props.showAdvanced",
               defaultValue: false,
               show: function (data) {
-                const connectionType = data.props?.connectionType || "claude";
-                return connectionType === "claude";
+                return true; // Always show since we only support Claude
               },
             },
             temperature: {
@@ -58,9 +190,8 @@
               step: 0.1,
               defaultValue: 0.7,
               show: function (data) {
-                const connectionType = data.props?.connectionType || "claude";
                 const showAdvanced = data.props?.showAdvanced || false;
-                return connectionType === "claude" && showAdvanced;
+                return showAdvanced;
               },
             },
             temperatureDescription: {

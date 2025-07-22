@@ -1,0 +1,13 @@
+{
+  "name": "qlikExtensionLLM",
+  "version": "0.1.0",
+  "description": "Dynamic LLM Extension for Qlik Cloud",
+  "author": {
+    "name": "Your Name",
+    "email": "your.email@domain.com"
+  },
+  "icon": "extension",
+  "preview": "",
+  "type": "visualization",
+  "supernova": true
+}

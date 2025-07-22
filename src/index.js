@@ -8,6 +8,7 @@ import {
 import objectProperties from "./object-properties";
 import extensionDefinition from "./ext";
 import dataConfiguration from "./data";
+import qlikApiService from "./services/qlik-api-service";
 
 // Global validation state to persist across component re-renders
 const globalValidationState = {
@@ -28,9 +29,19 @@ export default function supernova() {
       const app = useApp();
       const model = useModel();
 
-      useEffect(() => {
-        // Check completion status
-        const isConnectionConfigured = !!(layout?.props?.connectionName?.trim());
+              useEffect(() => {
+          // Test API connections on first load
+          const testAPIs = async () => {
+            try {
+              await qlikApiService.testAPIConnections();
+            } catch (error) {
+              console.error('🚨 API test failed:', error);
+            }
+          };
+          testAPIs();
+          
+          // Check completion status
+          const isConnectionConfigured = !!(layout?.props?.connectionName?.trim());
         const dimensionCount = layout?.qHyperCube?.qDimensionInfo?.length || 0;
         const measureCount = layout?.qHyperCube?.qMeasureInfo?.length || 0;
         const hasDimensionsOrMeasures = dimensionCount > 0 || measureCount > 0;
@@ -857,8 +868,17 @@ export default function supernova() {
           const topP = Math.max(0, Math.min(1, Number(props.topP || 1)));
           const maxTokens = Math.max(1, Math.min(4000, Number(props.maxTokens || 1000)));
           
-          // Step 4: Use the simplest possible approach that works - include all parameters
-          const configStr = `{"RequestType":"endpoint","endpoint":{"connectionname":"${connectionName.replace(/"/g, '\\"')}","column":"text","parameters":{"temperature":${temperature},"Top K":${topK},"Top P":${topP},"max_tokens":${maxTokens}}}}`;
+          // Step 4: Build config with dynamic connection name - let the connection handle its own parameters
+          let configStr;
+          
+          // Check if connection name suggests it's Claude/Anthropic
+          if (connectionName.toLowerCase().includes('claude') || connectionName.toLowerCase().includes('anthropic')) {
+            // Use Anthropic-specific parameters
+            configStr = `{"RequestType":"endpoint","endpoint":{"connectionname":"${connectionName.replace(/"/g, '\\"')}","column":"text","parameters":{"temperature":${temperature},"topk":${topK},"topp":${topP},"maxtoken":${maxTokens},"anthropicmodel":"anthropic.claude-3-5-sonnet-20240620-v1:0"}}}`;
+          } else {
+            // Use generic parameters that work with most AI connections
+            configStr = `{"RequestType":"endpoint","endpoint":{"connectionname":"${connectionName.replace(/"/g, '\\"')}","column":"text","parameters":{"temperature":${temperature},"max_tokens":${maxTokens}}}}`;
+          }
           
           // Step 5: Use double single quotes for Qlik string escaping
           const escapedPrompt = cleanPrompt.replace(/'/g, "''");
@@ -866,7 +886,8 @@ export default function supernova() {
           // Step 6: Build expression
           const expression = `endpoints.ScriptEvalStr('${configStr}', '${escapedPrompt}')`;
           
-          console.log("🔒 Using ultra-safe Qlik escaping approach");
+          console.log("🔒 Using dynamic connection-based parameters");
+          console.log("🔗 Connection name:", connectionName);
           console.log("🔍 Config string:", configStr.substring(0, 100) + "...");
           console.log("🔍 Escaped prompt preview:", escapedPrompt.substring(0, 100) + "...");
           console.log("✅ Expression built successfully, length:", expression.length);
@@ -875,36 +896,91 @@ export default function supernova() {
           return expression;
         };
 
-        // Claude API calling function using the robust approach
+                // Claude API calling function using EXACT same endpoints.ScriptEvalStr approach that worked before
         const callClaudeAPI = async (systemPrompt, userPrompt, connectionName, temperature) => {
           try {
-            // Combine system and user prompts with proper formatting
+            console.log("🤖 Using EXACT endpoints.ScriptEvalStr approach (same as manual input)");
+            console.log("🔍 Connection name from dropdown:", connectionName);
+            
+            // Use the full connection name with space prefix (as it worked in manual)
+            const actualConnectionName = connectionName;
+            console.log("🔗 Using connection name with space prefix:", actualConnectionName);
+            
+            // CRITICAL: Check exact connection name format
+            console.log("🔍 CRITICAL - Expected working format: 'Churn Analytics:Anthropic_Claude35Sonnet_ChurnML'");
+            console.log("🔍 CRITICAL - Current format:", `'${actualConnectionName}'`);
+            console.log("🔍 CRITICAL - Exact match?", actualConnectionName === 'Churn Analytics:Anthropic_Claude35Sonnet_ChurnML');
+            
+            // DEBUG: Check if endpoints extension is available
+            try {
+              const testEndpoints = await app.evaluate('endpoints');
+              console.log("🔍 Endpoints extension test:", JSON.stringify(testEndpoints));
+            } catch (endpointsError) {
+              console.log("❌ Endpoints extension not available:", endpointsError.message);
+            }
+            
+            // Combine system and user prompts exactly like manual input
             const fullPrompt = `${systemPrompt}\n\n${userPrompt}\n\nAssistant:`;
+            console.log("📝 Full prompt length:", fullPrompt.length);
             
-            // Get all props for the expression builder
-            const props = {
-              connectionName: connectionName,
-              temperature: temperature,
-              topK: layout?.props?.topK || 250,
-              topP: layout?.props?.topP || 1,
-              maxTokens: layout?.props?.maxTokens || 1000
-            };
-
-            console.log('🤖 Attempting robust endpoints.ScriptEvalStr call');
+            // Build expression EXACTLY like it worked before with manual input
+            const escapedPrompt = fullPrompt.replace(/'/g, "''");
             
-            // Build the expression using the robust method
-            const expressionString = buildLLMExpression(fullPrompt, props);
-
-                         // Use the app object to evaluate the expression
-             const result = await app.evaluate(expressionString);
-             
-             // Handle the result - app.evaluate returns a string directly
-             if (typeof result === 'string' && result.trim()) {
-               console.log('✅ Claude API call successful, response length:', result.length);
-               return result;
-             }
-             
-             throw new Error(`ScriptEvalStr call returned empty or invalid result`);
+            // Use the EXACT same ScriptEvalStr format that worked manually
+            const configString = JSON.stringify({
+              "RequestType": "endpoint",
+              "endpoint": {
+                "connectionname": actualConnectionName,
+                "column": "text",
+                "parameters": {
+                  "temperature": temperature.toString(),
+                  "Top K": (layout?.props?.topK || 250).toString(),
+                  "Top P": (layout?.props?.topP || 1).toString()
+                }
+              }
+            });
+            
+            const expression = `endpoints.ScriptEvalStr('${configString}', '${escapedPrompt}')`;
+            
+            console.log("🔍 Config string:", configString);
+            console.log("🔍 Expression preview:", expression.substring(0, 200) + "...");
+            console.log("🔍 Expression length:", expression.length);
+            
+            const result = await app.evaluate(expression);
+            console.log("🔍 Raw result:", JSON.stringify(result));
+            console.log("🔍 Result type:", typeof result);
+            console.log("🔍 Result length:", result?.length);
+            
+            if (typeof result === 'string' && result.trim() && !result.startsWith('Error:')) {
+              console.log('✅ endpoints.ScriptEvalStr call successful!');
+              return result;
+            }
+            
+            // If we get "Error:" try the EXACT same approach but with simpler parameters
+            console.log('🔄 Trying with minimal parameters (same as worked before)...');
+            const simpleConfig = JSON.stringify({
+              "RequestType": "endpoint", 
+              "endpoint": {
+                "connectionname": actualConnectionName,
+                "column": "text",
+                "parameters": {
+                  "temperature": temperature.toString()
+                }
+              }
+            });
+            
+            const simpleExpression = `endpoints.ScriptEvalStr('${simpleConfig}', '${escapedPrompt}')`;
+            console.log("🔄 Simple config:", simpleConfig);
+            
+            const simpleResult = await app.evaluate(simpleExpression);
+            console.log("🔄 Simple result:", JSON.stringify(simpleResult));
+            
+            if (typeof simpleResult === 'string' && simpleResult.trim() && !simpleResult.startsWith('Error:')) {
+              console.log('✅ Simple endpoints.ScriptEvalStr worked!');
+              return simpleResult;
+            }
+            
+            throw new Error(`endpoints.ScriptEvalStr failed. Result: ${result}`);
 
           } catch (evalError) {
             console.log('❌ Robust ScriptEvalStr call failed:', evalError);
@@ -2221,7 +2297,7 @@ export default function supernova() {
                   <h3 data-step-title="4" style="
                     margin: 0 0 4px 0;
                     color: ${arePromptsConfigured ? '#52c41a' : '#595959'};
-                    font-size: 16px;
+                    font-size: clamp(11px, 1.8vw, 13px);
                     font-weight: 600;
                   ">${arePromptsConfigured ? 'Prompts Configured ✓' : 'Add Prompts'}</h3>
                   <p data-step-desc="4" style="
